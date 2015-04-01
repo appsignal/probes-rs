@@ -4,3 +4,6 @@ version = "0.0.1"
 authors = ["Thijs Cadier <thijs@appsignal.com>",
            "Robert Beekman <robert@appsignal.com",
            "Dax Huiberts <daxhuiberts@gmail.com"]
+
+[dependencies]
+regex_macros    = "*"
