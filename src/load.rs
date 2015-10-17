@@ -1,53 +1,53 @@
 use super::Result;
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 pub struct LoadAverage {
     pub one:     f32,
     pub five:    f32,
     pub fifteen: f32
 }
 
-pub fn load_average() -> Result<LoadAverage> {
-    os::load_average()
+/// Read the current load average of the system.
+#[cfg(target_os = "linux")]
+pub fn read() -> Result<LoadAverage> {
+    os::read()
 }
 
 #[cfg(target_os = "linux")]
 mod os {
     use std::path::Path;
-    use std::fs;
-    use std::io;
-    use std::io::Read;
 
     use super::LoadAverage;
     use super::super::ProbeError;
     use super::super::Result;
+    use super::super::read_file;
 
-    pub fn load_average() -> Result<LoadAverage> {
+    #[inline]
+    pub fn read() -> Result<LoadAverage> {
         read_and_parse_load_average(&Path::new("/proc/loadavg"))
     }
 
+    #[inline]
     pub fn read_and_parse_load_average(path: &Path) -> Result<LoadAverage> {
-        let raw_data = try!(read_loadavg(path));
-        let segments: Vec<f32> = raw_data.split(" ").map(|segment|
-            segment.parse().unwrap_or(0.0)
-        ).collect();
+        let raw_data = try!(read_file(path));
+        let segments: Vec<&str> = raw_data.split_whitespace().collect();
 
         if segments.len() < 3 {
-            return Err(ProbeError::UnexpectedContent("Incorrect number of segments"))
+            return Err(ProbeError::UnexpectedContent("Incorrect number of segments".to_owned()))
         }
 
         Ok(LoadAverage {
-            one:     segments[0],
-            five:    segments[1],
-            fifteen: segments[2]
+            one:     try!(parse_segment(segments[0])),
+            five:    try!(parse_segment(segments[1])),
+            fifteen: try!(parse_segment(segments[2]))
         })
     }
 
-    fn read_loadavg(path: &Path) -> io::Result<String> {
-      let mut file = try!(fs::File::open(path));
-      let mut read = String::new();
-      try!(file.read_to_string(&mut read));
-      Ok(read)
+    #[inline]
+    fn parse_segment(segment: &str) -> Result<f32> {
+        segment.parse().map_err(|_| {
+            ProbeError::UnexpectedContent("Could not parse segment".to_owned())
+        })
     }
 }
 
@@ -55,20 +55,25 @@ mod os {
 mod tests {
     use std::path::Path;
     use super::super::ProbeError;
+    use super::LoadAverage;
 
     #[test]
-    fn test_load_average() {
-        assert!(super::load_average().is_ok());
+    fn test_read_load_average() {
+        assert!(super::read().is_ok());
     }
 
     #[test]
     fn test_read_and_parse_load_average() {
-        let path = Path::new("fixtures/linux/proc_loadavg");
+        let path = Path::new("fixtures/linux/load/proc_loadavg");
         let load_average = super::os::read_and_parse_load_average(&path).unwrap();
 
-        assert_eq!(load_average.one, 0.01);
-        assert_eq!(load_average.five, 0.02);
-        assert_eq!(load_average.fifteen, 0.03);
+        let expected = LoadAverage {
+            one: 0.01,
+            five: 0.02,
+            fifteen: 0.03
+        };
+
+        assert_eq!(expected, load_average);
     }
 
     #[test]
@@ -81,8 +86,17 @@ mod tests {
     }
 
     #[test]
-    fn test_read_and_parse_load_average_garbage_content() {
-        let path = Path::new("fixtures/linux/proc_loadavg_garbage");
+    fn test_read_and_parse_load_average_incomplete() {
+        let path = Path::new("fixtures/linux/load/proc_loadavg_incomplete");
+        match super::os::read_and_parse_load_average(&path) {
+            Err(ProbeError::UnexpectedContent(_)) => (),
+            r => panic!("Unexpected result: {:?}", r)
+        }
+    }
+
+    #[test]
+    fn test_read_and_parse_load_average_garbage() {
+        let path = Path::new("fixtures/linux/load/proc_loadavg_garbage");
         match super::os::read_and_parse_load_average(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)

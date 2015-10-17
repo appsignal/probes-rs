@@ -5,7 +5,7 @@ use std::fmt;
 #[derive(Debug)]
 pub enum ProbeError {
     IO(io::Error),
-    UnexpectedContent(&'static str)
+    UnexpectedContent(String)
 }
 
 impl From<io::Error> for ProbeError {
