@@ -6,16 +6,29 @@ Rust library to read out system stats from a machine running Unix.
 
 ### System wide stats
 
-- load (1, 5, 15)
-- cpu (user, nice, system, idle...)
-- mem (total, resident, virtual)
-- net (in/out in bytes/ops/packets)
-- io (in/out in bytes/ops)
-- disk (drives in abs/rel)
+* [ ] load (1, 5, 15)
+* [ ] cpu (user, nice, system, idle...)
+* [ ] mem (total, resident, virtual)
+* [ ] net (in/out in bytes/ops/packets)
+* [ ] io (in/out in bytes/ops)
+* [ ] disk (drives in abs/rel)
 
 ### Per process stats
 
-- cpu (user, nice, system, idle...)
-- mem (total, resident, virtual)
-- net (in/out in bytes/ops/packets)
-- io (in/out in bytes/ops)
+* [ ] cpu (user, nice, system, idle...)
+* [ ] mem (total, resident, virtual)
+* [ ] net (in/out in bytes/ops/packets)
+* [ ] io (in/out in bytes/ops)
+
+
+# Contributing
+
+## Setup
+
+* Download and install [Vagrant](https://www.vagrantup.com/)
+* Install/start the virtual machine by running `vagrant up`
+* SSH to the vagrant machine by running `vagrant ssh`
+* Navigate to the probes folder `cd /vagrant`
+* Install rust nightly `multirust override nightly`
+* Run the tests `cargo test`
+* Add awesome features! 
