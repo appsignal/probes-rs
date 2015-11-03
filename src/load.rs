@@ -20,7 +20,7 @@ mod os {
     use super::LoadAverage;
     use super::super::ProbeError;
     use super::super::Result;
-    use super::super::read_file;
+    use super::super::file_to_string;
 
     #[inline]
     pub fn read() -> Result<LoadAverage> {
@@ -29,7 +29,7 @@ mod os {
 
     #[inline]
     pub fn read_and_parse_load_average(path: &Path) -> Result<LoadAverage> {
-        let raw_data = try!(read_file(path));
+        let raw_data = try!(file_to_string(path));
         let segments: Vec<&str> = raw_data.split_whitespace().collect();
 
         if segments.len() < 3 {
