@@ -11,6 +11,6 @@ Vagrant.configure(2) do |config|
     curl -o blastoff.sh https://raw.githubusercontent.com/brson/multirust/master/blastoff.sh
     sh blastoff.sh --yes
     rm -f blastoff.sh
-    multirust default nightly
+    multirust default stable
   SHELL
 end

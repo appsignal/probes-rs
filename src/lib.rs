@@ -1,7 +1,3 @@
-#![feature(plugin)]
-#![plugin(regex_macros)]
-extern crate regex;
-
 mod error;
 pub mod load;
 pub mod memory;
