@@ -7,7 +7,7 @@ Rust library to read out system stats from a machine running Unix.
 ### System wide stats
 
 * [x] load (1, 5, 15)
-* [ ] cpu (user, nice, system, idle...)
+* [x] cpu (user, nice, system, idle...)
 * [x] mem (total, resident, virtual)
 * [ ] net (in/out in bytes/ops/packets)
 * [ ] io (in/out in bytes/ops)
