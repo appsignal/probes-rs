@@ -5,6 +5,7 @@ extern crate regex;
 mod error;
 pub mod load;
 pub mod memory;
+pub mod cpu_stat;
 
 use std::fs;
 use std::io;
