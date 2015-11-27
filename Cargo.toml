@@ -5,3 +5,6 @@ authors = ["Thijs Cadier <thijs@appsignal.com>",
            "Robert Beekman <robert@appsignal.com>",
            "Dax Huiberts <daxhuiberts@gmail.com>",
            "Timon Vonk <mail@timonv.nl>"]
+
+[dependencies]
+libc = "*"
