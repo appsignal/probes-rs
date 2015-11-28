@@ -1,12 +1,19 @@
 // These methods are described in:
 // http://nadeausoftware.com/articles/2012/07/c_c_tip_how_get_process_resident_set_size_physical_memory_use
 
+use libc;
 use super::Result;
 
 /// Get the current RSS memory of this process in KB
 #[cfg(target_os = "linux")]
 pub fn current_rss() -> Result<u64> {
     os::current_rss()
+}
+
+/// Get the current RSS memory of a process with given pid in KB
+#[cfg(target_os = "linux")]
+pub fn current_rss_of(pid: libc::pid_t) -> Result<u64> {
+    os::current_rss_of(pid)
 }
 
 #[cfg(target_os = "linux")]
@@ -20,6 +27,11 @@ mod os {
     #[inline]
     pub fn current_rss() -> Result<u64> {
         read_and_get_current_rss(&Path::new("/proc/self/statm"))
+    }
+
+    #[inline]
+    pub fn current_rss_of(pid: libc::pid_t) -> Result<u64> {
+        read_and_get_current_rss(&Path::new(&format!("/proc/{}/statm", pid)))
     }
 
     #[inline]
@@ -45,6 +57,7 @@ mod os {
 
 #[cfg(test)]
 mod tests {
+    use libc;
     use std::path::Path;
     use super::super::ProbeError;
 
@@ -88,5 +101,19 @@ mod tests {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
+    }
+
+    #[test]
+    fn test_current_rss_of() {
+        let pid = unsafe { libc::getpid() };
+        assert!(super::current_rss_of(pid).is_ok());
+        // See if it's a sort of sane value, between 1 and 10 mb
+        assert!(super::current_rss_of(pid).unwrap() > 1_000_000);
+        assert!(super::current_rss_of(pid).unwrap() < 10_000_000);
+    }
+
+    #[test]
+    fn test_current_rss_of_invalid_pid() {
+        assert!(super::current_rss_of(0).is_err());
     }
 }
