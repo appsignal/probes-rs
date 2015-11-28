@@ -16,8 +16,15 @@ pub fn current_rss_of(pid: libc::pid_t) -> Result<u64> {
     os::current_rss_of(pid)
 }
 
+/// Get the max RSS memory of this process in KB
+#[cfg(target_os = "linux")]
+pub fn max_rss() -> u64 {
+    os::max_rss()
+}
+
 #[cfg(target_os = "linux")]
 mod os {
+    use std::mem;
     use libc;
     use std::path::Path;
     use super::super::Result;
@@ -52,6 +59,13 @@ mod os {
         let pagesize = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as u64;
 
         Ok(pages * pagesize)
+    }
+
+    #[inline]
+    pub fn max_rss() -> u64 {
+        let mut rusage: libc::rusage = unsafe { mem::uninitialized() };
+        unsafe { libc::getrusage(libc::RUSAGE_SELF, &mut rusage) };
+        rusage.ru_maxrss as u64
     }
 }
 
@@ -115,5 +129,12 @@ mod tests {
     #[test]
     fn test_current_rss_of_invalid_pid() {
         assert!(super::current_rss_of(0).is_err());
+    }
+
+    #[test]
+    fn test_max_rss() {
+        // See if it's a sort of sane value, between 1 and 10 mb
+        assert!(super::current_rss().unwrap() > 1_000_000);
+        assert!(super::current_rss().unwrap() < 10_000_000);
     }
 }
