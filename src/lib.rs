@@ -23,6 +23,5 @@ fn file_to_string(path: &Path) -> io::Result<String> {
 
 #[inline]
 fn file_to_buf_reader(path: &Path) -> io::Result<io::BufReader<fs::File>> {
-    let file = try!(fs::File::open(path));
-    Ok(io::BufReader::new(file))
+    fs::File::open(path).and_then(|f| Ok(io::BufReader::new(f)))
 }
