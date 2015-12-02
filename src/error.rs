@@ -5,7 +5,8 @@ use std::fmt;
 #[derive(Debug)]
 pub enum ProbeError {
     IO(io::Error),
-    UnexpectedContent(String)
+    UnexpectedContent(String),
+    InvalidInput(String)
 }
 
 impl From<io::Error> for ProbeError {
@@ -18,7 +19,8 @@ impl fmt::Display for ProbeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ProbeError::IO(ref err) => write!(f, "{}", err),
-            ProbeError::UnexpectedContent(ref err) => write!(f, "{}", err)
+            ProbeError::UnexpectedContent(ref err) => write!(f, "{}", err),
+            ProbeError::InvalidInput(ref err) => write!(f, "{}", err)
         }
     }
 }
@@ -27,14 +29,16 @@ impl error::Error for ProbeError {
     fn description(&self) -> &str {
         match *self {
             ProbeError::IO(ref err) => err.description(),
-            ProbeError::UnexpectedContent(ref err) => err
+            ProbeError::UnexpectedContent(ref err) => err,
+            ProbeError::InvalidInput(ref err) => err
         }
     }
 
     fn cause(&self) -> Option<&error::Error> {
         match *self {
             ProbeError::IO(ref err) => Some(err),
-            ProbeError::UnexpectedContent(_) => None
+            ProbeError::UnexpectedContent(_) => None,
+            ProbeError::InvalidInput(_) => None
         }
     }
 }
