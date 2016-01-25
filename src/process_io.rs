@@ -46,7 +46,6 @@ mod os {
             .and_then(|bytes| String::from_utf8(bytes).map_err(|_| ProbeError::UnexpectedContent(PIDSTAT_READ_ERROR.to_string())) )
     }
 
-
     fn get_io_line<'a>(rawb: &'a str) -> Result<&'a str> {
         rawb.lines().skip(3).next().ok_or(ProbeError::UnexpectedContent(MISSING_LINE_ERROR.to_string()))
     }
