@@ -2,18 +2,19 @@ const MISSING_LINE_ERROR: &'static str = "[process_io] Could not find line";
 const PIDSTAT_READ_ERROR: &'static str = "[process_io] Could not convert bytes into string from pidstat";
 
 use super::Result;
+use libc::pid_t;
 
 #[derive(Debug)]
 pub struct ProcessIO {
     pub uid: u32,
-    pub pid: u32,
+    pub pid: pid_t,
     pub read_kbs: f32,
     pub write_kbs: f32,
     pub canceled_kbs: f32,
     pub iodelay: u32,
 }
 
-pub fn read(pid: u32) -> Result<ProcessIO> {
+pub fn read(pid: pid_t) -> Result<ProcessIO> {
     os::read_process_io(pid)
 }
 
@@ -24,8 +25,9 @@ mod os {
     use error::ProbeError;
     use std::io::BufRead;
     use std::process::Command;
+    use libc::pid_t;
 
-    pub fn read_process_io(pid: u32) -> Result<ProcessIO> {
+    pub fn read_process_io(pid: pid_t) -> Result<ProcessIO> {
         let raw = try!(run_pidstat(pid));
         read_pidstat_io(raw)
     }
@@ -34,7 +36,7 @@ mod os {
         get_io_line(&raw).and_then(parse)
     }
 
-    fn run_pidstat(pid: u32) -> Result<String> {
+    fn run_pidstat(pid: pid_t) -> Result<String> {
         Command::new("pidstat")
             .arg("-d")
             .arg(format!("-p {}", pid))
@@ -54,7 +56,7 @@ mod os {
 
         Ok(ProcessIO {
             uid      : try!(stats[0].parse()),
-            pid      : try!(stats[1].parse()),
+            pid      : try!(stats[1].parse::<pid_t>()),
             read_kbs   : try!(stats[2].parse()),
             write_kbs   : try!(stats[3].parse()),
             canceled_kbs : try!(stats[4].parse()),
