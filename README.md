@@ -16,7 +16,7 @@ Rust library to read out system stats from a machine running Unix.
 ### Per process stats
 
 * [ ] cpu (user, nice, system, idle...)
-* [ ] mem (total, resident, virtual)
+* [x] mem (total, resident, virtual)
 * [ ] net (in/out in bytes/ops/packets)
 * [ ] io (in/out in bytes/ops)
 
@@ -31,4 +31,4 @@ Rust library to read out system stats from a machine running Unix.
 * Navigate to the probes folder `cd /vagrant`
 * Install rust nightly `multirust override nightly`
 * Run the tests `cargo test`
-* Add awesome features! 
+* Add awesome features!
