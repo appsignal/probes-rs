@@ -1,7 +1,10 @@
+extern crate libc;
+
 mod error;
 pub mod load;
 pub mod memory;
 pub mod cpu_stat;
+pub mod process_memory;
 
 use std::fs;
 use std::io;
