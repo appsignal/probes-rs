@@ -2,6 +2,7 @@ mod error;
 pub mod load;
 pub mod memory;
 pub mod cpu_stat;
+pub mod disk_usage;
 
 use std::fs;
 use std::io;
