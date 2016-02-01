@@ -1,6 +1,3 @@
-const MISSING_LINE_ERROR: &'static str = "[process_io] Could not find line";
-const PIDSTAT_READ_ERROR: &'static str = "[process_io] Could not convert bytes into string from pidstat";
-
 use super::Result;
 use libc::pid_t;
 
@@ -20,7 +17,7 @@ pub fn read(pid: pid_t) -> Result<ProcessIO> {
 
 #[cfg(target_os = "linux")]
 mod os {
-    use super::{MISSING_LINE_ERROR, PIDSTAT_READ_ERROR, ProcessIO};
+    use super::ProcessIO;
     use super::super::Result;
     use error::ProbeError;
     use std::io::BufRead;
@@ -41,13 +38,13 @@ mod os {
             .arg("-d")
             .arg(format!("-p {}", pid))
             .output()
-            .map_err(|_| ProbeError::UnexpectedContent(PIDSTAT_READ_ERROR.to_string()))
+            .map_err(ProbeError::IO)
             .and_then(|c| Ok(c.stdout))
-            .and_then(|bytes| String::from_utf8(bytes).map_err(|_| ProbeError::UnexpectedContent(PIDSTAT_READ_ERROR.to_string())) )
+            .and_then(|bytes| Ok(String::from_utf8_lossy(&bytes).to_string()))
     }
 
     fn get_io_line<'a>(rawb: &'a str) -> Result<&'a str> {
-        rawb.lines().skip(3).next().ok_or(ProbeError::UnexpectedContent(MISSING_LINE_ERROR.to_string()))
+        rawb.lines().skip(3).next().ok_or(ProbeError::UnexpectedContent("Could not find line".to_string()))
     }
 
     fn parse(stats: &str) -> Result<ProcessIO> {
@@ -99,7 +96,6 @@ mod test {
         let stat = read(1);
         // Child process output is not correctly captured in tests
         // See: https://github.com/rust-lang/rust/issues/12309
-        return;
         println!("{:?}", stat);
         assert!(stat.is_ok());
         assert_eq!(stat.unwrap().pid, 1);
