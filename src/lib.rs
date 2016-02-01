@@ -5,6 +5,7 @@ pub mod load;
 pub mod memory;
 pub mod cpu_stat;
 pub mod process_memory;
+pub mod process_io;
 
 use std::fs;
 use std::io;
