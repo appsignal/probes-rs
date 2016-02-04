@@ -23,12 +23,22 @@ mod os {
     }
 
     pub fn read_disk_usage(dfoutput: String) -> Result<Vec<DiskUsage>> {
-        Ok(dfoutput
+        let parse_results = dfoutput
             .lines()
             .skip(2)
             .filter(is_local_device)
             .map(parse)
-            .collect::<Vec<DiskUsage>>())
+            .collect::<Vec<Result<DiskUsage>>>();
+
+        // I run into this problem _so_ often
+        // Maybe write a macro to deal with it?
+        let mut safe_results = vec![];
+        for result in parse_results {
+            let sresult = try!(result);
+            safe_results.push(sresult);
+        }
+
+        Ok(safe_results)
     }
 
 
@@ -37,13 +47,13 @@ mod os {
     }
 
     fn parse(line: &str) -> Result<DiskUsage> {
-        let stats = line.split_whitespace().collect();
+        let stats: Vec<&str> = line.split_whitespace().collect();
 
         Ok(DiskUsage {
-            file_system: try!(stats[0].parse()),
-            total_bytes: try!(stats[1].parse()),
-            used_bytes: try!(stats[2].parse()),
-            available_bytes: try!(stats[3].parse())
+            file_system     : try!(stats[0].parse()),
+            total_bytes     : try!(stats[1].parse()),
+            used_bytes      : try!(stats[2].parse()),
+            available_bytes : try!(stats[3].parse())
         })
     }
 }
@@ -56,7 +66,7 @@ mod test {
 
     fn test_disk_usage_single_device() {
         let test_data = file_to_string(&Path::new("fixtures/linux/disk_usage/single_device")).unwrap();
-        let usage = read_disk_usage(test_data);
+        let usage = read_disk_usage(test_data).unwrap();
         assert_eq!(usage.length, 1);
 
         let dev = usage[0];
