@@ -8,3 +8,4 @@ authors = ["Thijs Cadier <thijs@appsignal.com>",
 
 [dependencies]
 libc = "*"
+time = "*"
