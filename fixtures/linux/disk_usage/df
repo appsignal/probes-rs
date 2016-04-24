@@ -1,0 +1,5 @@
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/mapper/lucid64-root
+                      81234688   2344444  74763732   4% /
+none                    183176       180    182996   1% /dev
+/dev/sda1               233191     17217    203533   8% /boot
