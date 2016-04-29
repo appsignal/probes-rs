@@ -11,7 +11,7 @@ Rust library to read out system stats from a machine running Unix.
 * [x] mem (total, resident, virtual)
 * [x] net (in/out in bytes/ops/packets)
 * [ ] io (in/out in bytes/ops)
-* [ ] disk (drives in abs/rel)
+* [x] disk (drives in abs/rel)
 
 ### Per process stats
 
