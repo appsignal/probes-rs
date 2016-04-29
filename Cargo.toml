@@ -3,9 +3,8 @@ name = "probes"
 version = "0.0.1"
 authors = ["Thijs Cadier <thijs@appsignal.com>",
            "Robert Beekman <robert@appsignal.com>",
-           "Dax Huiberts <daxhuiberts@gmail.com>",
            "Timon Vonk <mail@timonv.nl>"]
 
 [dependencies]
-libc = "*"
-time = "*"
+libc = ">= 0.2.0"
+time = ">= 0.1.34"
