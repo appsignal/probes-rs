@@ -44,6 +44,35 @@ pub struct CpuStat {
     pub iowait: u64
 }
 
+impl CpuStat {
+    /// Calculate the weight of the various components in percentages
+    pub fn in_percentages(&self) -> CpuStatPercentages {
+        let total = (self.user + self.system + self.idle) as f64;
+
+        CpuStatPercentages {
+            user: Self::percentage_of_total(self.user, total),
+            nice: Self::percentage_of_total(self.nice, total),
+            system: Self::percentage_of_total(self.system, total),
+            idle: Self::percentage_of_total(self.idle, total),
+            iowait: Self::percentage_of_total(self.iowait, total)
+        }
+    }
+
+    fn percentage_of_total(value: u64, total: f64) -> f32 {
+        (value as f64 / total * 100.0) as f32
+    }
+}
+
+/// Cpu stats converted to percentages
+#[derive(Debug,PartialEq)]
+pub struct CpuStatPercentages {
+    pub user: f32,
+    pub nice: f32,
+    pub system: f32,
+    pub idle: f32,
+    pub iowait: f32
+}
+
 #[cfg(target_os = "linux")]
 pub fn read() -> Result<CpuMeasurement> {
     // columns: user nice system idle iowait irq softirq
@@ -93,7 +122,7 @@ mod os {
 
 #[cfg(test)]
 mod test {
-    use super::{CpuMeasurement,CpuStat};
+    use super::{CpuMeasurement,CpuStat,CpuStatPercentages};
     use super::os::read_proc_cpu_stat;
     use std::path::Path;
     use error::ProbeError;
@@ -249,5 +278,47 @@ mod test {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
+    }
+
+    #[test]
+    fn test_in_percentages() {
+        let stat = CpuStat {
+            user: 500,
+            nice: 100,
+            system: 250,
+            idle: 250,
+            iowait: 100
+        };
+
+        let expected = CpuStatPercentages {
+            user: 50.0,
+            nice: 10.0,
+            system: 25.0,
+            idle: 25.0,
+            iowait: 10.0
+        };
+
+        assert_eq!(stat.in_percentages(), expected);
+    }
+
+    #[test]
+    fn test_in_percentages_fractions() {
+        let stat = CpuStat {
+            user: 495,
+            nice: 100,
+            system: 250,
+            idle: 255,
+            iowait: 100
+        };
+
+        let expected = CpuStatPercentages {
+            user: 49.5,
+            nice: 10.0,
+            system: 25.0,
+            idle: 25.5,
+            iowait: 10.0
+        };
+
+        assert_eq!(stat.in_percentages(), expected);
     }
 }
