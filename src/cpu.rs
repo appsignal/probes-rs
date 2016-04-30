@@ -1,10 +1,3 @@
-// - load (1, 5, 15)
-// - cpu (user, nice, system, idle...)
-// - mem (total, resident, virtual)
-// - net (in/out in bytes/ops/packets)
-// - io (in/out in bytes/ops)
-// - disk (drives in abs/rel)
-
 use std::path::Path;
 use super::Result;
 

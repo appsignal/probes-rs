@@ -5,7 +5,7 @@ mod error;
 pub mod disk_usage;
 pub mod load;
 pub mod memory;
-pub mod cpu_stat;
+pub mod cpu;
 pub mod network;
 pub mod process_memory;
 
