@@ -31,3 +31,18 @@ fn file_to_string(path: &Path) -> io::Result<String> {
 fn file_to_buf_reader(path: &Path) -> io::Result<io::BufReader<fs::File>> {
     fs::File::open(path).and_then(|f| Ok(io::BufReader::new(f)))
 }
+
+#[inline]
+fn time_adjusted(first_value: u64, second_value: u64, time_difference_ns: u64) -> u64 {
+    (first_value - second_value) * time_difference_ns / 60_000_000
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_time_adjusted() {
+        assert_eq!(1200, super::time_adjusted(2400, 1200, 60_000_000));
+        assert_eq!(600, super::time_adjusted(2400, 1200, 30_000_000));
+        assert_eq!(300, super::time_adjusted(2400, 1200, 15_000_000));
+    }
+}

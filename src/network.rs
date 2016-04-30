@@ -48,8 +48,8 @@ impl NetworkTrafficMeasurement {
             interfaces.insert(
                 name.to_string(),
                 NetworkTraffic {
-                    received: Self::time_adjusted(next_traffic.received, traffic.received, time_difference),
-                    transmitted: Self::time_adjusted(next_traffic.transmitted, traffic.transmitted, time_difference)
+                    received: super::time_adjusted(next_traffic.received, traffic.received, time_difference),
+                    transmitted: super::time_adjusted(next_traffic.transmitted, traffic.transmitted, time_difference)
                 }
             );
         }
@@ -57,10 +57,6 @@ impl NetworkTrafficMeasurement {
         Ok(NetworkTrafficPerMinute {
             interfaces: interfaces
         })
-    }
-
-    fn time_adjusted(first_value: u64, second_value: u64, time_difference: u64) -> u64 {
-        (first_value - second_value) * time_difference / 60_000_000
     }
 }
 
