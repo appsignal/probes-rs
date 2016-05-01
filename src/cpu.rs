@@ -129,7 +129,7 @@ mod test {
 
     #[test]
     fn test_read_cpu_measurement() {
-        let measurement = read_proc_cpu_stat(&Path::new("fixtures/linux/cpu_stat/proc_cpu_stat")).unwrap();
+        let measurement = read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_cpu_stat")).unwrap();
         assert_eq!(measurement.user, 0);
         assert_eq!(measurement.nice, 1);
         assert_eq!(measurement.system, 2);
@@ -147,7 +147,7 @@ mod test {
 
     #[test]
     fn test_incomplete() {
-        match read_proc_cpu_stat(&Path::new("fixtures/linux/cpu_stat/proc_cpu_stat_incomplete")) {
+        match read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_cpu_stat_incomplete")) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
@@ -155,7 +155,7 @@ mod test {
 
     #[test]
     fn test_read_and_parse_cpu_stat_garbage() {
-        let path = Path::new("fixtures/linux/cpu_stat/proc_cpu_stat_garbage");
+        let path = Path::new("fixtures/linux/cpu/proc_cpu_stat_garbage");
         match read_proc_cpu_stat(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
