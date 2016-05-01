@@ -129,7 +129,7 @@ mod test {
 
     #[test]
     fn test_read_cpu_measurement() {
-        let measurement = read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_cpu_stat")).unwrap();
+        let measurement = read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_stat")).unwrap();
         assert_eq!(measurement.user, 0);
         assert_eq!(measurement.nice, 1);
         assert_eq!(measurement.system, 2);
@@ -147,7 +147,7 @@ mod test {
 
     #[test]
     fn test_incomplete() {
-        match read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_cpu_stat_incomplete")) {
+        match read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_stat_incomplete")) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
@@ -155,7 +155,7 @@ mod test {
 
     #[test]
     fn test_read_and_parse_cpu_stat_garbage() {
-        let path = Path::new("fixtures/linux/cpu/proc_cpu_stat_garbage");
+        let path = Path::new("fixtures/linux/cpu/proc_stat_garbage");
         match read_proc_cpu_stat(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
@@ -320,5 +320,37 @@ mod test {
         };
 
         assert_eq!(stat.in_percentages(), expected);
+    }
+
+    #[test]
+    fn test_in_percentages_integration() {
+        let measurement1 = read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_stat_1")).unwrap();
+        let measurement2 = read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_stat_2")).unwrap();
+        let stat = measurement1.calculate_per_minute(&measurement2).unwrap();
+        let in_percentages = stat.in_percentages();
+
+        // Rounding in the floating point calculations can vary, so check if this
+        // is in the correct range.
+
+        assert!(in_percentages.user > 4.6);
+        assert!(in_percentages.user < 4.7);
+
+        assert!(in_percentages.nice < 0.1);
+
+        assert!(in_percentages.system > 1.4);
+        assert!(in_percentages.system < 1.5);
+
+        assert!(in_percentages.idle > 93.8);
+        assert!(in_percentages.idle < 94.0);
+
+        assert!(in_percentages.iowait < 0.1);
+
+        //The total of all values should be 100.
+
+        let total = in_percentages.user + in_percentages.nice + in_percentages.system +
+                      in_percentages.idle + in_percentages.iowait;
+
+        assert!(total < 100.1);
+        assert!(total > 99.9);
     }
 }
