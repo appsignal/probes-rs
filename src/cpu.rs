@@ -335,16 +335,16 @@ mod test {
         // Rounding in the floating point calculations can vary, so check if this
         // is in the correct range.
 
-        assert!(in_percentages.user > 4.6);
-        assert!(in_percentages.user < 4.7);
+        assert!(in_percentages.user > 4.0);
+        assert!(in_percentages.user < 5.0);
 
         assert!(in_percentages.nice < 0.1);
 
-        assert!(in_percentages.system > 1.4);
-        assert!(in_percentages.system < 1.5);
+        assert!(in_percentages.system > 1.0);
+        assert!(in_percentages.system < 2.0);
 
-        assert!(in_percentages.idle > 93.8);
-        assert!(in_percentages.idle < 94.0);
+        assert!(in_percentages.idle > 93.5);
+        assert!(in_percentages.idle < 94.5);
 
         assert!(in_percentages.iowait < 0.1);
 
