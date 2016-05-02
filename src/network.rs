@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{ProbeError,Result};
+use super::{ProbeError,Result,calculate_time_difference};
 
 /// Network traffic in kilobytes.
 #[derive(Debug,PartialEq)]
@@ -29,11 +29,7 @@ impl NetworkTrafficMeasurement {
     /// future. It is advisable to make the next measurement roughly a minute from this one for the
     /// most reliable result.
     pub fn calculate_per_minute(&self, next_measurement: &NetworkTrafficMeasurement) -> Result<NetworkTrafficPerMinute> {
-        if next_measurement.precise_time_ns < self.precise_time_ns {
-            return Err(ProbeError::InvalidInput("time of next measurement was before time of this one".to_string()))
-        }
-
-        let time_difference = next_measurement.precise_time_ns - self.precise_time_ns;
+        let time_difference = try!(calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns));
 
         let mut interfaces = Interfaces::new();
 
@@ -334,8 +330,8 @@ mod tests {
         match measurement1.calculate_per_minute(&measurement2) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
-    }
         }
+    }
 
     #[test]
     fn test_calculate_per_minute_different_interfaces() {

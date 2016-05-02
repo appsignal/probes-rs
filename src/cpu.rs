@@ -1,6 +1,5 @@
 use std::path::Path;
-use error::ProbeError;
-use super::Result;
+use super::{Result,calculate_time_difference};
 
 /// Measurement of cpu stats at a certain time
 #[derive(Debug,PartialEq)]
@@ -18,11 +17,7 @@ impl CpuMeasurement {
     /// It is advisable to make the next measurement roughly a minute from this one for the
     /// most reliable result.
     pub fn calculate_per_minute(&self, next_measurement: &CpuMeasurement) -> Result<CpuStat> {
-        if next_measurement.precise_time_ns < self.precise_time_ns {
-            return Err(ProbeError::InvalidInput("time of next measurement was before time of this one".to_string()))
-        }
-
-        let time_difference = next_measurement.precise_time_ns - self.precise_time_ns;
+        let time_difference = try!(calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns));
 
         Ok(CpuStat {
             user: try!(super::time_adjusted(next_measurement.user, self.user, time_difference)),

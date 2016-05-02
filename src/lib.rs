@@ -2,11 +2,11 @@ extern crate libc;
 extern crate time;
 
 mod error;
-pub mod disk_usage;
+pub mod cpu;
 pub mod disk_stats;
+pub mod disk_usage;
 pub mod load;
 pub mod memory;
-pub mod cpu;
 pub mod network;
 pub mod process_memory;
 
@@ -34,11 +34,21 @@ fn file_to_buf_reader(path: &Path) -> io::Result<io::BufReader<fs::File>> {
 }
 
 #[inline]
+fn calculate_time_difference(first_time: u64, second_time: u64) -> Result<u64> {
+    if first_time > second_time {
+        Err(ProbeError::InvalidInput("first time was after second time".to_string()))
+    } else {
+        Ok(second_time - first_time)
+    }
+}
+
+#[inline]
 fn time_adjusted(first_value: u64, second_value: u64, time_difference_ns: u64) -> Result<u64> {
     if first_value < second_value {
-        return Err(ProbeError::UnexpectedContent("Value in first value was lower than in second value".to_string()))
+        Err(ProbeError::UnexpectedContent("Value in first value was lower than in second value".to_string()))
+    } else {
+        Ok((first_value - second_value) * time_difference_ns / 60_000_000)
     }
-    Ok((first_value - second_value) * time_difference_ns / 60_000_000)
 }
 
 #[inline]
@@ -51,6 +61,12 @@ fn parse_u64(segment: &str) -> Result<u64> {
 #[cfg(test)]
 mod tests {
     use error::ProbeError;
+
+    #[test]
+    fn test_calculate_time_difference() {
+        assert_eq!(100, super::calculate_time_difference(100, 200).unwrap());
+        assert!(super::calculate_time_difference(200, 100).is_err());
+    }
 
     #[test]
     fn test_time_adjusted() {
