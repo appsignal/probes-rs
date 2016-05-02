@@ -5,11 +5,7 @@ use super::{Result,calculate_time_difference};
 #[derive(Debug,PartialEq)]
 pub struct CpuMeasurement {
     pub precise_time_ns: u64,
-    pub user: u64,
-    pub nice: u64,
-    pub system: u64,
-    pub idle: u64,
-    pub iowait: u64
+    pub stat: CpuStat
 }
 
 impl CpuMeasurement {
@@ -20,11 +16,11 @@ impl CpuMeasurement {
         let time_difference = try!(calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns));
 
         Ok(CpuStat {
-            user: try!(super::time_adjusted(next_measurement.user, self.user, time_difference)),
-            nice: try!(super::time_adjusted(next_measurement.nice, self.nice, time_difference)),
-            system: try!(super::time_adjusted(next_measurement.system, self.system, time_difference)),
-            idle: try!(super::time_adjusted(next_measurement.idle, self.idle, time_difference)),
-            iowait: try!(super::time_adjusted(next_measurement.iowait, self.iowait, time_difference))
+            user: try!(super::time_adjusted(next_measurement.stat.user, self.stat.user, time_difference)),
+            nice: try!(super::time_adjusted(next_measurement.stat.nice, self.stat.nice, time_difference)),
+            system: try!(super::time_adjusted(next_measurement.stat.system, self.stat.system, time_difference)),
+            idle: try!(super::time_adjusted(next_measurement.stat.idle, self.stat.idle, time_difference)),
+            iowait: try!(super::time_adjusted(next_measurement.stat.iowait, self.stat.iowait, time_difference))
         })
     }
 }
@@ -80,7 +76,7 @@ mod os {
     use std::io::BufRead;
     use time;
     use super::super::{Result,file_to_buf_reader,parse_u64};
-    use super::CpuMeasurement;
+    use super::{CpuMeasurement,CpuStat};
     use error::ProbeError;
 
     pub fn read_and_parse_proc_stat(path: &Path) -> Result<CpuMeasurement> {
@@ -100,11 +96,13 @@ mod os {
 
         Ok(CpuMeasurement {
             precise_time_ns: time,
-            user: try!(parse_u64(stats[0])),
-            nice: try!(parse_u64(stats[1])),
-            system: try!(parse_u64(stats[2])),
-            idle: try!(parse_u64(stats[3])),
-            iowait: try!(parse_u64(stats[4]))
+            stat: CpuStat {
+                user: try!(parse_u64(stats[0])),
+                nice: try!(parse_u64(stats[1])),
+                system: try!(parse_u64(stats[2])),
+                idle: try!(parse_u64(stats[3])),
+                iowait: try!(parse_u64(stats[4]))
+            }
         })
     }
 }
@@ -119,11 +117,11 @@ mod test {
     #[test]
     fn test_read_cpu_measurement() {
         let measurement = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat")).unwrap();
-        assert_eq!(measurement.user, 0);
-        assert_eq!(measurement.nice, 1);
-        assert_eq!(measurement.system, 2);
-        assert_eq!(measurement.idle, 3);
-        assert_eq!(measurement.iowait, 4);
+        assert_eq!(measurement.stat.user, 0);
+        assert_eq!(measurement.stat.nice, 1);
+        assert_eq!(measurement.stat.system, 2);
+        assert_eq!(measurement.stat.idle, 3);
+        assert_eq!(measurement.stat.iowait, 4);
     }
 
     #[test]
@@ -155,20 +153,24 @@ mod test {
     fn test_calculate_per_minute_wrong_times() {
         let measurement1 = CpuMeasurement {
             precise_time_ns: 90_000_000,
-            user: 0,
-            nice: 0,
-            system: 0,
-            idle: 0,
-            iowait: 0
+            stat: CpuStat {
+                user: 0,
+                nice: 0,
+                system: 0,
+                idle: 0,
+                iowait: 0
+            }
         };
 
         let measurement2 = CpuMeasurement {
             precise_time_ns: 60_000_000,
-            user: 0,
-            nice: 0,
-            system: 0,
-            idle: 0,
-            iowait: 0
+            stat: CpuStat {
+                user: 0,
+                nice: 0,
+                system: 0,
+                idle: 0,
+                iowait: 0
+            }
         };
 
         match measurement1.calculate_per_minute(&measurement2) {
@@ -181,20 +183,24 @@ mod test {
     fn test_calculate_per_minute_full_minute() {
         let measurement1 = CpuMeasurement {
             precise_time_ns: 60_000_000,
-            user: 1000,
-            nice: 1100,
-            system: 1200,
-            idle: 1300,
-            iowait: 1400
+            stat: CpuStat {
+                user: 1000,
+                nice: 1100,
+                system: 1200,
+                idle: 1300,
+                iowait: 1400
+            }
         };
 
         let measurement2 = CpuMeasurement {
             precise_time_ns: 120_000_000,
-            user: 1006,
-            nice: 1106,
-            system: 1206,
-            idle: 1306,
-            iowait: 1406
+            stat: CpuStat {
+                user: 1006,
+                nice: 1106,
+                system: 1206,
+                idle: 1306,
+                iowait: 1406
+            }
         };
 
         let expected = CpuStat {
@@ -214,20 +220,24 @@ mod test {
     fn test_calculate_per_minute_partial_minute() {
         let measurement1 = CpuMeasurement {
             precise_time_ns: 60_000_000,
-            user: 1000,
-            nice: 1100,
-            system: 1200,
-            idle: 1300,
-            iowait: 1400
+            stat: CpuStat {
+                user: 1000,
+                nice: 1100,
+                system: 1200,
+                idle: 1300,
+                iowait: 1400
+            }
         };
 
         let measurement2 = CpuMeasurement {
             precise_time_ns: 90_000_000,
-            user: 1006,
-            nice: 1106,
-            system: 1206,
-            idle: 1306,
-            iowait: 1406
+            stat: CpuStat {
+                user: 1006,
+                nice: 1106,
+                system: 1206,
+                idle: 1306,
+                iowait: 1406
+            }
         };
 
         let expected = CpuStat {
@@ -247,20 +257,24 @@ mod test {
     fn test_calculate_per_minute_values_lower() {
         let measurement1 = CpuMeasurement {
             precise_time_ns: 60_000_000,
-            user: 1000,
-            nice: 1100,
-            system: 1200,
-            idle: 1300,
-            iowait: 1400
+            stat: CpuStat {
+                user: 1000,
+                nice: 1100,
+                system: 1200,
+                idle: 1300,
+                iowait: 1400
+            }
         };
 
         let measurement2 = CpuMeasurement {
             precise_time_ns: 90_000_000,
-            user: 106,
-            nice: 116,
-            system: 126,
-            idle: 136,
-            iowait: 146
+            stat: CpuStat {
+                user: 106,
+                nice: 116,
+                system: 126,
+                idle: 136,
+                iowait: 146
+            }
         };
 
         match measurement1.calculate_per_minute(&measurement2) {
