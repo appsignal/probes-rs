@@ -42,14 +42,11 @@ impl NetworkTrafficMeasurement {
                 Some(interface) => interface,
                 None => return Err(ProbeError::UnexpectedContent(format!("{} is not present in the next measurement", name)))
             };
-            if next_traffic.received < traffic.received || next_traffic.transmitted < traffic.transmitted {
-                return Err(ProbeError::UnexpectedContent("value in next measurement was lower than in this measurement".to_string()))
-            }
             interfaces.insert(
                 name.to_string(),
                 NetworkTraffic {
-                    received: Self::time_adjusted(next_traffic.received, traffic.received, time_difference),
-                    transmitted: Self::time_adjusted(next_traffic.transmitted, traffic.transmitted, time_difference)
+                    received: try!(super::time_adjusted(next_traffic.received, traffic.received, time_difference)),
+                    transmitted: try!(super::time_adjusted(next_traffic.transmitted, traffic.transmitted, time_difference))
                 }
             );
         }
@@ -57,10 +54,6 @@ impl NetworkTrafficMeasurement {
         Ok(NetworkTrafficPerMinute {
             interfaces: interfaces
         })
-    }
-
-    fn time_adjusted(first_value: u64, second_value: u64, time_difference: u64) -> u64 {
-        (first_value - second_value) * time_difference / 60_000_000
     }
 }
 
@@ -348,8 +341,8 @@ mod tests {
         match measurement1.calculate_per_minute(&measurement2) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
-        }
     }
+        }
 
     #[test]
     fn test_calculate_per_minute_different_interfaces() {
