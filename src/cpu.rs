@@ -76,7 +76,7 @@ pub struct CpuStatPercentages {
 #[cfg(target_os = "linux")]
 pub fn read() -> Result<CpuMeasurement> {
     // columns: user nice system idle iowait irq softirq
-    os::read_proc_cpu_stat(&Path::new("/proc/stat"))
+    os::read_and_parse_proc_stat(&Path::new("/proc/stat"))
 }
 
 #[cfg(target_os = "linux")]
@@ -88,7 +88,7 @@ mod os {
     use super::CpuMeasurement;
     use error::ProbeError;
 
-    pub fn read_proc_cpu_stat(path: &Path) -> Result<CpuMeasurement> {
+    pub fn read_and_parse_proc_stat(path: &Path) -> Result<CpuMeasurement> {
         let mut line = String::new();
         let mut reader = try!(file_to_buf_reader(path));
         let time = time::precise_time_ns();
@@ -123,13 +123,13 @@ mod os {
 #[cfg(test)]
 mod test {
     use super::{CpuMeasurement,CpuStat,CpuStatPercentages};
-    use super::os::read_proc_cpu_stat;
+    use super::os::read_and_parse_proc_stat;
     use std::path::Path;
     use error::ProbeError;
 
     #[test]
     fn test_read_cpu_measurement() {
-        let measurement = read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_stat")).unwrap();
+        let measurement = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat")).unwrap();
         assert_eq!(measurement.user, 0);
         assert_eq!(measurement.nice, 1);
         assert_eq!(measurement.system, 2);
@@ -139,24 +139,24 @@ mod test {
 
     #[test]
     fn test_wrong_path() {
-        match read_proc_cpu_stat(&Path::new("bananas")) {
+        match read_and_parse_proc_stat(&Path::new("bananas")) {
             Err(ProbeError::IO(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
     }
 
     #[test]
-    fn test_incomplete() {
-        match read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_stat_incomplete")) {
+    fn test_read_and_parse_proc_stat_incomplete() {
+        match read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_incomplete")) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
     }
 
     #[test]
-    fn test_read_and_parse_cpu_stat_garbage() {
+    fn test_read_and_parse_proc_stat_garbage() {
         let path = Path::new("fixtures/linux/cpu/proc_stat_garbage");
-        match read_proc_cpu_stat(&path) {
+        match read_and_parse_proc_stat(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
@@ -324,8 +324,8 @@ mod test {
 
     #[test]
     fn test_in_percentages_integration() {
-        let measurement1 = read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_stat_1")).unwrap();
-        let measurement2 = read_proc_cpu_stat(&Path::new("fixtures/linux/cpu/proc_stat_2")).unwrap();
+        let measurement1 = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_1")).unwrap();
+        let measurement2 = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_2")).unwrap();
         let stat = measurement1.calculate_per_minute(&measurement2).unwrap();
         let in_percentages = stat.in_percentages();
 
