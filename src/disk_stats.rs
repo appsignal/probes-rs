@@ -3,10 +3,12 @@ use std::path::Path;
 use super::{Result,time_adjusted,calculate_time_difference};
 use error::ProbeError;
 
+pub type DiskStats = HashMap<String, DiskStat>;
+
 #[derive(Debug,PartialEq)]
 pub struct DiskStatsMeasurement {
     pub precise_time_ns: u64,
-    pub stats: HashMap<String, DiskStat>
+    pub stats: DiskStats
 }
 
 impl DiskStatsMeasurement {
@@ -64,7 +66,7 @@ pub struct DiskStat {
 
 #[derive(Debug,PartialEq)]
 pub struct DiskStatsPerMinute {
-   pub stats: HashMap<String, DiskStat>
+   pub stats: DiskStats
 }
 
 #[cfg(target_os = "linux")]

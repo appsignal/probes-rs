@@ -1,13 +1,5 @@
 use std::collections::HashMap;
-
 use super::{ProbeError,Result,calculate_time_difference};
-
-/// Network traffic in kilobytes.
-#[derive(Debug,PartialEq)]
-pub struct NetworkTraffic {
-    pub received: u64,
-    pub transmitted: u64
-}
 
 pub type Interfaces = HashMap<String, NetworkTraffic>;
 
@@ -15,12 +7,6 @@ pub type Interfaces = HashMap<String, NetworkTraffic>;
 #[derive(Debug,PartialEq)]
 pub struct NetworkTrafficMeasurement {
     pub precise_time_ns: u64,
-    pub interfaces: Interfaces
-}
-
-/// Network traffic for a certain minute, calculated based on two measurements.
-#[derive(Debug,PartialEq)]
-pub struct NetworkTrafficPerMinute {
     pub interfaces: Interfaces
 }
 
@@ -51,6 +37,19 @@ impl NetworkTrafficMeasurement {
             interfaces: interfaces
         })
     }
+}
+
+/// Network traffic in kilobytes.
+#[derive(Debug,PartialEq)]
+pub struct NetworkTraffic {
+    pub received: u64,
+    pub transmitted: u64
+}
+
+/// Network traffic for a certain minute, calculated based on two measurements.
+#[derive(Debug,PartialEq)]
+pub struct NetworkTrafficPerMinute {
+    pub interfaces: Interfaces
 }
 
 #[cfg(target_os = "linux")]
