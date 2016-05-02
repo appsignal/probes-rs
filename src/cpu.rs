@@ -345,7 +345,7 @@ mod test {
 
         assert!(in_percentages.iowait < 0.1);
 
-        //The total of all values should be 100.
+        // The total of all values should be 100.
 
         let total = in_percentages.user + in_percentages.nice + in_percentages.system +
                       in_percentages.idle + in_percentages.iowait;
