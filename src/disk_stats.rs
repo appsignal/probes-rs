@@ -123,7 +123,7 @@ mod tests {
     use std::collections::HashMap;
     use std::path::Path;
     use error::ProbeError;
-    use super::{DiskStat,DiskStatsMeasurement};
+    use super::DiskStatsMeasurement;
     use super::os::read_and_parse_proc_diskstats;
 
     #[test]
@@ -186,13 +186,13 @@ mod tests {
     fn test_calculate_per_minute_full_minute() {
         let mut stats1 = HashMap::new();
         stats1.insert("sda1".to_owned(), helpers::disk_stat(0));
-        let mut measurement1 = DiskStatsMeasurement {
+        let measurement1 = DiskStatsMeasurement {
             precise_time_ns: 60_000_000,
             stats: stats1
         };
         let mut stats2 = HashMap::new();
         stats2.insert("sda1".to_owned(), helpers::disk_stat(120));
-        let mut measurement2 = DiskStatsMeasurement {
+        let measurement2 = DiskStatsMeasurement {
             precise_time_ns: 120_000_000,
             stats: stats2
         };
@@ -216,13 +216,13 @@ mod tests {
     fn test_calculate_per_minute_partial_minute() {
         let mut stats1 = HashMap::new();
         stats1.insert("sda1".to_owned(), helpers::disk_stat(0));
-        let mut measurement1 = DiskStatsMeasurement {
+        let measurement1 = DiskStatsMeasurement {
             precise_time_ns: 60_000_000,
             stats: stats1
         };
         let mut stats2 = HashMap::new();
         stats2.insert("sda1".to_owned(), helpers::disk_stat(120));
-        let mut measurement2 = DiskStatsMeasurement {
+        let measurement2 = DiskStatsMeasurement {
             precise_time_ns: 90_000_000,
             stats: stats2
         };
@@ -244,11 +244,11 @@ mod tests {
 
     #[test]
     fn test_calculate_per_minute_wrong_times() {
-        let mut measurement1 = DiskStatsMeasurement {
+        let measurement1 = DiskStatsMeasurement {
             precise_time_ns: 500,
             stats: HashMap::new()
         };
-        let mut measurement2 = DiskStatsMeasurement {
+        let measurement2 = DiskStatsMeasurement {
             precise_time_ns: 300,
             stats: HashMap::new()
         };
@@ -263,13 +263,13 @@ mod tests {
     fn test_calculate_per_minute_values_lower() {
         let mut stats1 = HashMap::new();
         stats1.insert("sda1".to_owned(), helpers::disk_stat(500));
-        let mut measurement1 = DiskStatsMeasurement {
+        let measurement1 = DiskStatsMeasurement {
             precise_time_ns: 500,
             stats: stats1
         };
         let mut stats2 = HashMap::new();
         stats2.insert("sda1".to_owned(), helpers::disk_stat(400));
-        let mut measurement2 = DiskStatsMeasurement {
+        let measurement2 = DiskStatsMeasurement {
             precise_time_ns: 600,
             stats: stats2
         };
@@ -284,13 +284,13 @@ mod tests {
     fn test_calculate_per_minute_different_disks() {
         let mut stats1 = HashMap::new();
         stats1.insert("sda1".to_owned(), helpers::disk_stat(500));
-        let mut measurement1 = DiskStatsMeasurement {
+        let measurement1 = DiskStatsMeasurement {
             precise_time_ns: 500,
             stats: stats1
         };
         let mut stats2 = HashMap::new();
         stats2.insert("sda2".to_owned(), helpers::disk_stat(600));
-        let mut measurement2 = DiskStatsMeasurement {
+        let measurement2 = DiskStatsMeasurement {
             precise_time_ns: 600,
             stats: stats2
         };
