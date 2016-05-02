@@ -69,7 +69,7 @@ mod os {
     use time;
 
     use super::{NetworkTraffic,Interfaces,NetworkTrafficMeasurement};
-    use super::super::{Result,file_to_buf_reader};
+    use super::super::{Result,file_to_buf_reader,parse_u64};
     use error::ProbeError;
 
     #[inline]
@@ -102,8 +102,8 @@ mod os {
             }
 
             let traffic = NetworkTraffic {
-                received: try!(parse_segment(segments[positions.receive_bytes])),
-                transmitted: try!(parse_segment(segments[positions.transmit_bytes]))
+                received: try!(parse_u64(segments[positions.receive_bytes])),
+                transmitted: try!(parse_u64(segments[positions.transmit_bytes]))
             };
 
             interfaces.insert(name, traffic);
@@ -138,13 +138,6 @@ mod os {
         Ok(Positions {
             receive_bytes: 1 + receive_pos,
             transmit_bytes: 1 + receive_group.len() + transmit_pos
-        })
-    }
-
-    #[inline]
-    fn parse_segment(segment: &str) -> Result<u64> {
-        segment.parse().map_err(|_| {
-            ProbeError::UnexpectedContent("Could not parse segment".to_owned())
         })
     }
 }

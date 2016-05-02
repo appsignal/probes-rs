@@ -84,7 +84,7 @@ mod os {
     use std::path::Path;
     use std::io::BufRead;
     use time;
-    use super::super::{Result,file_to_buf_reader};
+    use super::super::{Result,file_to_buf_reader,parse_u64};
     use super::CpuMeasurement;
     use error::ProbeError;
 
@@ -105,17 +105,11 @@ mod os {
 
         Ok(CpuMeasurement {
             precise_time_ns: time,
-            user: try!(parse_stat(stats[0])),
-            nice: try!(parse_stat(stats[1])),
-            system: try!(parse_stat(stats[2])),
-            idle: try!(parse_stat(stats[3])),
-            iowait: try!(parse_stat(stats[4]))
-        })
-    }
-
-    fn parse_stat(stat: &str) -> Result<u64> {
-        stat.parse().map_err(|_| {
-            ProbeError::UnexpectedContent(format!("Could not parse stat {:?}", stat).to_owned())
+            user: try!(parse_u64(stats[0])),
+            nice: try!(parse_u64(stats[1])),
+            system: try!(parse_u64(stats[2])),
+            idle: try!(parse_u64(stats[3])),
+            iowait: try!(parse_u64(stats[4]))
         })
     }
 }

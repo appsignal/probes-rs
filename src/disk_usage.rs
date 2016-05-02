@@ -22,7 +22,7 @@ pub fn read() -> Result<DiskUsages> {
 mod os {
     use std::process::Command;
     use super::{DiskUsages,DiskUsage};
-    use super::super::{ProbeError,Result};
+    use super::super::{ProbeError,Result,parse_u64};
 
     #[inline]
     pub fn read() -> Result<DiskUsages> {
@@ -57,9 +57,9 @@ mod os {
 
                 let disk = DiskUsage {
                     filesystem: filesystem,
-                    one_k_blocks: try!(parse_segment(segments[1])),
-                    one_k_blocks_used: try!(parse_segment(segments[2])),
-                    one_k_blocks_free: try!(parse_segment(segments[3])),
+                    one_k_blocks: try!(parse_u64(segments[1])),
+                    one_k_blocks_used: try!(parse_u64(segments[2])),
+                    one_k_blocks_free: try!(parse_u64(segments[3])),
                     used_percentage: try!(parse_percentage_segment(&segments[4])),
                     mountpoint: segments[5].to_string()
                 };
@@ -78,9 +78,9 @@ mod os {
 
                         let disk = DiskUsage {
                             filesystem: filesystem,
-                            one_k_blocks: try!(parse_segment(segments[0])),
-                            one_k_blocks_used: try!(parse_segment(segments[1])),
-                            one_k_blocks_free: try!(parse_segment(segments[2])),
+                            one_k_blocks: try!(parse_u64(segments[0])),
+                            one_k_blocks_used: try!(parse_u64(segments[1])),
+                            one_k_blocks_free: try!(parse_u64(segments[2])),
                             used_percentage: try!(parse_percentage_segment(&segments[3])),
                             mountpoint: segments[4].to_string()
                         };
@@ -105,18 +105,11 @@ mod os {
     }
 
     #[inline]
-    fn parse_segment(segment: &str) -> Result<u64> {
-        segment.parse().map_err(|_| {
-            ProbeError::UnexpectedContent("Could not parse segment".to_owned())
-        })
-    }
-
-    #[inline]
     fn parse_percentage_segment(segment: &str) -> Result<u32> {
         // Strip % from the used value
         let segment_minus_percentage = &segment[..segment.len() -1];
         segment_minus_percentage.parse().map_err(|_| {
-            ProbeError::UnexpectedContent("Could not parse segment".to_owned())
+            ProbeError::UnexpectedContent("Could not parse percentage segment".to_owned())
         })
     }
 }

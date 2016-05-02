@@ -36,9 +36,16 @@ fn file_to_buf_reader(path: &Path) -> io::Result<io::BufReader<fs::File>> {
 #[inline]
 fn time_adjusted(first_value: u64, second_value: u64, time_difference_ns: u64) -> Result<u64> {
     if first_value < second_value {
-        return Err(ProbeError::UnexpectedContent("value in first value was lower than in second value".to_string()))
+        return Err(ProbeError::UnexpectedContent("Value in first value was lower than in second value".to_string()))
     }
     Ok((first_value - second_value) * time_difference_ns / 60_000_000)
+}
+
+#[inline]
+fn parse_u64(segment: &str) -> Result<u64> {
+    segment.parse().map_err(|_| {
+        ProbeError::UnexpectedContent(format!("Could not parse '{}' as u64", segment).to_owned())
+    })
 }
 
 #[cfg(test)]
@@ -58,5 +65,11 @@ mod tests {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
+    }
+
+    #[test]
+    fn test_parse_u64() {
+        assert_eq!(100, super::parse_u64("100").unwrap());
+        assert!(super::parse_u64("something").is_err());
     }
 }
