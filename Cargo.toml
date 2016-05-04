@@ -4,6 +4,11 @@ version = "0.0.1"
 authors = ["Thijs Cadier <thijs@appsignal.com>",
            "Robert Beekman <robert@appsignal.com>",
            "Timon Vonk <mail@timonv.nl>"]
+description = "Library to read out system stats from a machine running Unix"
+readme = "README.md"
+repository = "https://github.com/appsignal/probes-rs"
+keywords = ["unix", "linux", "probe"]
+license = "MIT"
 
 [dependencies]
 libc = ">= 0.2.0"
