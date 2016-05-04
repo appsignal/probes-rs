@@ -1,9 +1,9 @@
 use super::Result;
 
-pub type Disks = Vec<Disk>;
+pub type DiskUsages = Vec<DiskUsage>;
 
 #[derive(Debug,PartialEq)]
-pub struct Disk {
+pub struct DiskUsage {
     pub filesystem: Option<String>,
     pub one_k_blocks: u64,
     pub one_k_blocks_used: u64,
@@ -14,18 +14,18 @@ pub struct Disk {
 
 /// Read the current usage of all disks
 #[cfg(target_os = "linux")]
-pub fn read() -> Result<Disks> {
+pub fn read() -> Result<DiskUsages> {
     os::read()
 }
 
 #[cfg(target_os = "linux")]
 mod os {
     use std::process::Command;
-    use super::{Disks,Disk};
-    use super::super::{ProbeError,Result};
+    use super::{DiskUsages,DiskUsage};
+    use super::super::{ProbeError,Result,parse_u64};
 
     #[inline]
-    pub fn read() -> Result<Disks> {
+    pub fn read() -> Result<DiskUsages> {
         let output = try!(Command::new("df").arg("-l").output()).stdout;
         let output_string = String::from_utf8_lossy(&output);
 
@@ -33,10 +33,10 @@ mod os {
     }
 
     #[inline]
-    pub fn parse_df_output(output: &str) -> Result<Disks> {
+    pub fn parse_df_output(output: &str) -> Result<DiskUsages> {
         let lines = output.split("\n");
 
-        let mut out: Disks = Vec::new();
+        let mut out: DiskUsages = Vec::new();
 
         // Sometimes the filesystem is on a separate line
         let mut filesystem_on_previous_line: Option<String> = None;
@@ -55,11 +55,11 @@ mod os {
                     value => Some(value.to_string())
                 };
 
-                let disk = Disk {
+                let disk = DiskUsage {
                     filesystem: filesystem,
-                    one_k_blocks: try!(parse_segment(segments[1])),
-                    one_k_blocks_used: try!(parse_segment(segments[2])),
-                    one_k_blocks_free: try!(parse_segment(segments[3])),
+                    one_k_blocks: try!(parse_u64(segments[1])),
+                    one_k_blocks_used: try!(parse_u64(segments[2])),
+                    one_k_blocks_free: try!(parse_u64(segments[3])),
                     used_percentage: try!(parse_percentage_segment(&segments[4])),
                     mountpoint: segments[5].to_string()
                 };
@@ -76,11 +76,11 @@ mod os {
                             value => Some(value.to_string())
                         };
 
-                        let disk = Disk {
+                        let disk = DiskUsage {
                             filesystem: filesystem,
-                            one_k_blocks: try!(parse_segment(segments[0])),
-                            one_k_blocks_used: try!(parse_segment(segments[1])),
-                            one_k_blocks_free: try!(parse_segment(segments[2])),
+                            one_k_blocks: try!(parse_u64(segments[0])),
+                            one_k_blocks_used: try!(parse_u64(segments[1])),
+                            one_k_blocks_free: try!(parse_u64(segments[2])),
                             used_percentage: try!(parse_percentage_segment(&segments[3])),
                             mountpoint: segments[4].to_string()
                         };
@@ -105,18 +105,11 @@ mod os {
     }
 
     #[inline]
-    fn parse_segment(segment: &str) -> Result<u64> {
-        segment.parse().map_err(|_| {
-            ProbeError::UnexpectedContent("Could not parse segment".to_owned())
-        })
-    }
-
-    #[inline]
     fn parse_percentage_segment(segment: &str) -> Result<u32> {
         // Strip % from the used value
         let segment_minus_percentage = &segment[..segment.len() -1];
         segment_minus_percentage.parse().map_err(|_| {
-            ProbeError::UnexpectedContent("Could not parse segment".to_owned())
+            ProbeError::UnexpectedContent("Could not parse percentage segment".to_owned())
         })
     }
 }
@@ -126,7 +119,7 @@ mod tests {
     use std::path::Path;
     use super::super::file_to_string;
     use super::super::ProbeError;
-    use super::Disk;
+    use super::DiskUsage;
 
     #[test]
     fn test_read_disks() {
@@ -137,7 +130,7 @@ mod tests {
     #[test]
     fn test_parse_df_output() {
         let expected = vec![
-            Disk {
+            DiskUsage {
                 filesystem: Some("/dev/mapper/lucid64-root".to_owned()),
                 one_k_blocks: 81234688,
                 one_k_blocks_used: 2344444,
@@ -145,7 +138,7 @@ mod tests {
                 used_percentage: 4,
                 mountpoint: "/".to_owned()
             },
-            Disk {
+            DiskUsage {
                 filesystem: None,
                 one_k_blocks: 183176,
                 one_k_blocks_used: 180,
@@ -153,7 +146,7 @@ mod tests {
                 used_percentage: 1,
                 mountpoint: "/dev".to_owned()
             },
-            Disk {
+            DiskUsage {
                 filesystem: Some("/dev/sda1".to_owned()),
                 one_k_blocks: 233191,
                 one_k_blocks_used: 17217,

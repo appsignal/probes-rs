@@ -1,13 +1,5 @@
 use std::collections::HashMap;
-
-use super::{ProbeError,Result};
-
-/// Network traffic in kilobytes.
-#[derive(Debug,PartialEq)]
-pub struct NetworkTraffic {
-    pub received: u64,
-    pub transmitted: u64
-}
+use super::{ProbeError,Result,calculate_time_difference};
 
 pub type Interfaces = HashMap<String, NetworkTraffic>;
 
@@ -18,22 +10,12 @@ pub struct NetworkTrafficMeasurement {
     pub interfaces: Interfaces
 }
 
-/// Network traffic for a certain minute, calculated based on two measurements.
-#[derive(Debug,PartialEq)]
-pub struct NetworkTrafficPerMinute {
-    pub interfaces: Interfaces
-}
-
 impl NetworkTrafficMeasurement {
     /// Calculate the network traffic per minute based on this measurement and a measurement in the
     /// future. It is advisable to make the next measurement roughly a minute from this one for the
     /// most reliable result.
     pub fn calculate_per_minute(&self, next_measurement: &NetworkTrafficMeasurement) -> Result<NetworkTrafficPerMinute> {
-        if next_measurement.precise_time_ns < self.precise_time_ns {
-            return Err(ProbeError::InvalidInput("time of next measurement was before time of this one".to_string()))
-        }
-
-        let time_difference = next_measurement.precise_time_ns - self.precise_time_ns;
+        let time_difference = try!(calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns));
 
         let mut interfaces = Interfaces::new();
 
@@ -57,6 +39,19 @@ impl NetworkTrafficMeasurement {
     }
 }
 
+/// Network traffic in kilobytes.
+#[derive(Debug,PartialEq)]
+pub struct NetworkTraffic {
+    pub received: u64,
+    pub transmitted: u64
+}
+
+/// Network traffic for a certain minute, calculated based on two measurements.
+#[derive(Debug,PartialEq)]
+pub struct NetworkTrafficPerMinute {
+    pub interfaces: Interfaces
+}
+
 #[cfg(target_os = "linux")]
 pub fn read() -> Result<NetworkTrafficMeasurement> {
     os::read()
@@ -69,7 +64,7 @@ mod os {
     use time;
 
     use super::{NetworkTraffic,Interfaces,NetworkTrafficMeasurement};
-    use super::super::{Result,file_to_buf_reader};
+    use super::super::{Result,file_to_buf_reader,parse_u64};
     use error::ProbeError;
 
     #[inline]
@@ -102,8 +97,8 @@ mod os {
             }
 
             let traffic = NetworkTraffic {
-                received: try!(parse_segment(segments[positions.receive_bytes])),
-                transmitted: try!(parse_segment(segments[positions.transmit_bytes]))
+                received: try!(parse_u64(segments[positions.receive_bytes])),
+                transmitted: try!(parse_u64(segments[positions.transmit_bytes]))
             };
 
             interfaces.insert(name, traffic);
@@ -138,13 +133,6 @@ mod os {
         Ok(Positions {
             receive_bytes: 1 + receive_pos,
             transmit_bytes: 1 + receive_group.len() + transmit_pos
-        })
-    }
-
-    #[inline]
-    fn parse_segment(segment: &str) -> Result<u64> {
-        segment.parse().map_err(|_| {
-            ProbeError::UnexpectedContent("Could not parse segment".to_owned())
         })
     }
 }
@@ -341,8 +329,8 @@ mod tests {
         match measurement1.calculate_per_minute(&measurement2) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
-    }
         }
+    }
 
     #[test]
     fn test_calculate_per_minute_different_interfaces() {
