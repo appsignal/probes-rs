@@ -1,6 +1,7 @@
 # Probes
 
 [![Build Status](https://travis-ci.org/appsignal/probes-rs.svg?branch=master)](https://travis-ci.org/appsignal/probes-rs)
+[![Crate](http://meritbadge.herokuapp.com/sql_lexer)](https://crates.io/crates/probes)
 
 Rust library to read out system stats from a machine running Unix.
 Currently only supports Linux.
