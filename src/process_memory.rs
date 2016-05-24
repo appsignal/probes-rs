@@ -56,7 +56,7 @@ mod os {
 
         // Value is in pages, needs to be multiplied by the page size to get a value in KB. We ask the OS
         // for this information using sysconf.
-        let pagesize = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as u64;
+        let pagesize = unsafe { libc::sysconf(libc::_SC_PAGESIZE) } as u64 / 1024;
 
         Ok(pages * pagesize)
     }
@@ -79,15 +79,15 @@ mod tests {
     fn test_current_rss() {
         assert!(super::current_rss().is_ok());
         // See if it's a sort of sane value, between 1 and 250 mb
-        assert!(super::current_rss().unwrap() > 1_000_000);
-        assert!(super::current_rss().unwrap() < 250_000_000);
+        assert!(super::current_rss().unwrap() > 1_000);
+        assert!(super::current_rss().unwrap() < 50_000);
     }
 
     #[test]
     fn test_read_and_get_current_rss() {
         let path = Path::new("fixtures/linux/process_memory/proc_self_statm");
         let value = super::os::read_and_get_current_rss(&path).unwrap();
-        assert_eq!(4_661_248, value);
+        assert_eq!(4552, value);
     }
 
     #[test]
@@ -121,9 +121,9 @@ mod tests {
     fn test_current_rss_of() {
         let pid = unsafe { libc::getpid() };
         assert!(super::current_rss_of(pid).is_ok());
-        // See if it's a sort of sane value, between 1 and 250 mb
-        assert!(super::current_rss_of(pid).unwrap() > 1_000_000);
-        assert!(super::current_rss_of(pid).unwrap() < 250_000_000);
+        // See if it's a sort of sane value, between 1 and 50 mb
+        assert!(super::current_rss_of(pid).unwrap() > 1_000);
+        assert!(super::current_rss_of(pid).unwrap() < 50_000);
     }
 
     #[test]
@@ -133,8 +133,8 @@ mod tests {
 
     #[test]
     fn test_max_rss() {
-        // See if it's a sort of sane value, between 1 and 250 mb
-        assert!(super::current_rss().unwrap() > 1_000_000);
-        assert!(super::current_rss().unwrap() < 250_000_000);
+        // See if it's a sort of sane value, between 1 and 50 mb
+        assert!(super::current_rss().unwrap() > 1_000);
+        assert!(super::current_rss().unwrap() < 50_000);
     }
 }
