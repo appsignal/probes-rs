@@ -80,7 +80,7 @@ mod tests {
         assert!(super::current_rss().is_ok());
         // See if it's a sort of sane value, between 1 and 250 mb
         assert!(super::current_rss().unwrap() > 1_000);
-        assert!(super::current_rss().unwrap() < 50_000);
+        assert!(super::current_rss().unwrap() < 250_000);
     }
 
     #[test]
@@ -121,9 +121,9 @@ mod tests {
     fn test_current_rss_of() {
         let pid = unsafe { libc::getpid() };
         assert!(super::current_rss_of(pid).is_ok());
-        // See if it's a sort of sane value, between 1 and 50 mb
+        // See if it's a sort of sane value, between 1 and 250 mb
         assert!(super::current_rss_of(pid).unwrap() > 1_000);
-        assert!(super::current_rss_of(pid).unwrap() < 50_000);
+        assert!(super::current_rss_of(pid).unwrap() < 250_000);
     }
 
     #[test]
@@ -133,8 +133,8 @@ mod tests {
 
     #[test]
     fn test_max_rss() {
-        // See if it's a sort of sane value, between 1 and 50 mb
+        // See if it's a sort of sane value, between 1 and 250 mb
         assert!(super::max_rss() > 1_000);
-        assert!(super::max_rss() < 50_000);
+        assert!(super::max_rss() < 250_000);
     }
 }
