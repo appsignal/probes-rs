@@ -64,6 +64,16 @@ pub struct DiskStat {
     pub weighted_time_spent_doing_ios_ms: u64
 }
 
+impl DiskStat {
+    pub fn bytes_read(&self) -> u64 {
+        self.sectors_read * 512
+    }
+
+    pub fn bytes_written(&self) -> u64 {
+        self.sectors_written * 512
+    }
+}
+
 #[derive(Debug,PartialEq)]
 pub struct DiskStatsPerMinute {
    pub stats: DiskStats
@@ -145,10 +155,12 @@ mod tests {
         assert_eq!(6185, sda.reads_completed_successfully);
         assert_eq!(9367, sda.reads_merged);
         assert_eq!(403272, sda.sectors_read);
+        assert_eq!(206475264, sda.bytes_read());
         assert_eq!(22160, sda.time_spent_reading_ms);
         assert_eq!(2591, sda.writes_completed);
         assert_eq!(8251, sda.writes_merged);
         assert_eq!(84452, sda.sectors_written);
+        assert_eq!(43239424, sda.bytes_written());
         assert_eq!(2860, sda.time_spent_writing_ms);
         assert_eq!(0, sda.ios_currently_in_progress);
         assert_eq!(8960, sda.time_spent_doing_ios_ms);
@@ -158,10 +170,12 @@ mod tests {
         assert_eq!(483, sda1.reads_completed_successfully);
         assert_eq!(4782, sda1.reads_merged);
         assert_eq!(41466, sda1.sectors_read);
+        assert_eq!(21230592, sda1.bytes_read());
         assert_eq!(1100, sda1.time_spent_reading_ms);
         assert_eq!(7, sda1.writes_completed);
         assert_eq!(1, sda1.writes_merged);
         assert_eq!(28, sda1.sectors_written);
+        assert_eq!(14336, sda1.bytes_written());
         assert_eq!(40, sda1.time_spent_writing_ms);
         assert_eq!(0, sda1.ios_currently_in_progress);
         assert_eq!(930, sda1.time_spent_doing_ios_ms);
