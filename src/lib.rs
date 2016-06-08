@@ -36,7 +36,7 @@ fn file_to_buf_reader(path: &Path) -> io::Result<io::BufReader<fs::File>> {
 #[inline]
 fn calculate_time_difference(first_time: u64, second_time: u64) -> Result<u64> {
     if first_time > second_time {
-        Err(ProbeError::InvalidInput("first time was after second time".to_string()))
+        Err(ProbeError::InvalidInput(format!("first time {} was after second time {}", first_time, second_time)))
     } else {
         Ok(second_time - first_time)
     }
@@ -45,7 +45,7 @@ fn calculate_time_difference(first_time: u64, second_time: u64) -> Result<u64> {
 #[inline]
 fn time_adjusted(field_name: &str, first_value: u64, second_value: u64, time_difference_ns: u64) -> Result<u64> {
     if first_value < second_value {
-        Err(ProbeError::UnexpectedContent(format!("First value was lower than second value for '{}'", field_name)))
+        Err(ProbeError::UnexpectedContent(format!("First value {} was lower than second value {} for '{}'", first_value, second_value, field_name)))
     } else {
         Ok((first_value - second_value) * time_difference_ns / 60_000_000)
     }
