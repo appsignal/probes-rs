@@ -27,8 +27,8 @@ impl NetworkTrafficMeasurement {
             interfaces.insert(
                 name.to_string(),
                 NetworkTraffic {
-                    received: try!(super::time_adjusted(next_traffic.received, traffic.received, time_difference)),
-                    transmitted: try!(super::time_adjusted(next_traffic.transmitted, traffic.transmitted, time_difference))
+                    received: try!(super::time_adjusted("received", next_traffic.received, traffic.received, time_difference)),
+                    transmitted: try!(super::time_adjusted("transmitted", next_traffic.transmitted, traffic.transmitted, time_difference))
                 }
             );
         }

@@ -16,11 +16,11 @@ impl CpuMeasurement {
         let time_difference = try!(calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns));
 
         Ok(CpuStat {
-            user: try!(super::time_adjusted(next_measurement.stat.user, self.stat.user, time_difference)),
-            nice: try!(super::time_adjusted(next_measurement.stat.nice, self.stat.nice, time_difference)),
-            system: try!(super::time_adjusted(next_measurement.stat.system, self.stat.system, time_difference)),
-            idle: try!(super::time_adjusted(next_measurement.stat.idle, self.stat.idle, time_difference)),
-            iowait: try!(super::time_adjusted(next_measurement.stat.iowait, self.stat.iowait, time_difference))
+            user: try!(super::time_adjusted("user", next_measurement.stat.user, self.stat.user, time_difference)),
+            nice: try!(super::time_adjusted("nice", next_measurement.stat.nice, self.stat.nice, time_difference)),
+            system: try!(super::time_adjusted("system", next_measurement.stat.system, self.stat.system, time_difference)),
+            idle: try!(super::time_adjusted("idle", next_measurement.stat.idle, self.stat.idle, time_difference)),
+            iowait: try!(super::time_adjusted("iowait", next_measurement.stat.iowait, self.stat.iowait, time_difference))
         })
     }
 }
