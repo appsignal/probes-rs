@@ -45,7 +45,7 @@ fn calculate_time_difference(first_time: u64, second_time: u64) -> Result<u64> {
 #[inline]
 fn time_adjusted(first_value: u64, second_value: u64, time_difference_ns: u64) -> Result<u64> {
     if first_value < second_value {
-        Err(ProbeError::UnexpectedContent("Value in first value was lower than in second value".to_string()))
+        Err(ProbeError::UnexpectedContent("First value was lower than second value".to_string()))
     } else {
         Ok((first_value - second_value) * time_difference_ns / 60_000_000)
     }
