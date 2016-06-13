@@ -238,7 +238,7 @@ mod tests {
         interfaces1.insert("eth0".to_string(), NetworkTraffic{received: 1000, transmitted: 1000});
         interfaces1.insert("eth1".to_string(), NetworkTraffic{received: 2000, transmitted: 3000});
         let measurement1 = NetworkTrafficMeasurement{
-            precise_time_ns: 60_000_000,
+            precise_time_ns: 60_000_000_000,
             interfaces: interfaces1
         };
 
@@ -246,7 +246,7 @@ mod tests {
         interfaces2.insert("eth0".to_string(), NetworkTraffic{received: 2000, transmitted: 2600});
         interfaces2.insert("eth1".to_string(), NetworkTraffic{received: 3000, transmitted: 4600});
         let measurement2 = NetworkTrafficMeasurement{
-            precise_time_ns: 120_000_000,
+            precise_time_ns: 120_000_000_000,
             interfaces: interfaces2
         };
 
@@ -268,7 +268,7 @@ mod tests {
         interfaces1.insert("eth0".to_string(), NetworkTraffic{received: 1000, transmitted: 1000});
         interfaces1.insert("eth1".to_string(), NetworkTraffic{received: 2000, transmitted: 3000});
         let measurement1 = NetworkTrafficMeasurement{
-            precise_time_ns: 60_000_000,
+            precise_time_ns: 60_000_000_000,
             interfaces: interfaces1
         };
 
@@ -276,7 +276,7 @@ mod tests {
         interfaces2.insert("eth0".to_string(), NetworkTraffic{received: 2000, transmitted: 2600});
         interfaces2.insert("eth1".to_string(), NetworkTraffic{received: 3000, transmitted: 4600});
         let measurement2 = NetworkTrafficMeasurement{
-            precise_time_ns: 90_000_000,
+            precise_time_ns: 90_000_000_000,
             interfaces: interfaces2
         };
 
@@ -295,12 +295,12 @@ mod tests {
     #[test]
     fn test_calculate_per_minute_wrong_times() {
         let measurement1 = NetworkTrafficMeasurement{
-            precise_time_ns: 90_000_000,
+            precise_time_ns: 90_000_000_000,
             interfaces: Interfaces::new()
         };
 
         let measurement2 = NetworkTrafficMeasurement{
-            precise_time_ns: 60_000_000,
+            precise_time_ns: 60_000_000_000,
             interfaces: Interfaces::new()
         };
 
@@ -315,14 +315,14 @@ mod tests {
         let mut interfaces1 = Interfaces::new();
         interfaces1.insert("eth0".to_string(), NetworkTraffic{received: 2000, transmitted: 3000});
         let measurement1 = NetworkTrafficMeasurement{
-            precise_time_ns: 60_000_000,
+            precise_time_ns: 60_000_000_000,
             interfaces: interfaces1
         };
 
         let mut interfaces2 = Interfaces::new();
         interfaces2.insert("eth0".to_string(), NetworkTraffic{received: 2000, transmitted: 2600});
         let measurement2 = NetworkTrafficMeasurement{
-            precise_time_ns: 120_000_000,
+            precise_time_ns: 120_000_000_000,
             interfaces: interfaces2
         };
 
@@ -337,14 +337,14 @@ mod tests {
         let mut interfaces1 = Interfaces::new();
         interfaces1.insert("eth1".to_string(), NetworkTraffic{received: 2000, transmitted: 3000});
         let measurement1 = NetworkTrafficMeasurement{
-            precise_time_ns: 60_000_000,
+            precise_time_ns: 60_000_000_000,
             interfaces: interfaces1
         };
 
         let mut interfaces2 = Interfaces::new();
         interfaces2.insert("eth0".to_string(), NetworkTraffic{received: 2000, transmitted: 2600});
         let measurement2 = NetworkTrafficMeasurement{
-            precise_time_ns: 120_000_000,
+            precise_time_ns: 120_000_000_000,
             interfaces: interfaces2
         };
 

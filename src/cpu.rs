@@ -152,7 +152,7 @@ mod test {
     #[test]
     fn test_calculate_per_minute_wrong_times() {
         let measurement1 = CpuMeasurement {
-            precise_time_ns: 90_000_000,
+            precise_time_ns: 90_000_000_000,
             stat: CpuStat {
                 user: 0,
                 nice: 0,
@@ -163,7 +163,7 @@ mod test {
         };
 
         let measurement2 = CpuMeasurement {
-            precise_time_ns: 60_000_000,
+            precise_time_ns: 60_000_000_000,
             stat: CpuStat {
                 user: 0,
                 nice: 0,
@@ -182,7 +182,7 @@ mod test {
     #[test]
     fn test_calculate_per_minute_full_minute() {
         let measurement1 = CpuMeasurement {
-            precise_time_ns: 60_000_000,
+            precise_time_ns: 60_000_000_000,
             stat: CpuStat {
                 user: 1000,
                 nice: 1100,
@@ -193,7 +193,7 @@ mod test {
         };
 
         let measurement2 = CpuMeasurement {
-            precise_time_ns: 120_000_000,
+            precise_time_ns: 120_000_000_000,
             stat: CpuStat {
                 user: 1006,
                 nice: 1106,
@@ -219,7 +219,7 @@ mod test {
     #[test]
     fn test_calculate_per_minute_partial_minute() {
         let measurement1 = CpuMeasurement {
-            precise_time_ns: 60_000_000,
+            precise_time_ns: 60_000_000_000,
             stat: CpuStat {
                 user: 1000,
                 nice: 1100,
@@ -230,7 +230,7 @@ mod test {
         };
 
         let measurement2 = CpuMeasurement {
-            precise_time_ns: 90_000_000,
+            precise_time_ns: 90_000_000_000,
             stat: CpuStat {
                 user: 1006,
                 nice: 1106,
@@ -256,7 +256,7 @@ mod test {
     #[test]
     fn test_calculate_per_minute_values_lower() {
         let measurement1 = CpuMeasurement {
-            precise_time_ns: 60_000_000,
+            precise_time_ns: 60_000_000_000,
             stat: CpuStat {
                 user: 1000,
                 nice: 1100,
@@ -267,7 +267,7 @@ mod test {
         };
 
         let measurement2 = CpuMeasurement {
-            precise_time_ns: 90_000_000,
+            precise_time_ns: 90_000_000_000,
             stat: CpuStat {
                 user: 106,
                 nice: 116,
@@ -327,8 +327,11 @@ mod test {
 
     #[test]
     fn test_in_percentages_integration() {
-        let measurement1 = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_1")).unwrap();
-        let measurement2 = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_2")).unwrap();
+        let mut measurement1 = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_1")).unwrap();
+        measurement1.precise_time_ns = 60_000_000_000;
+        let mut measurement2 = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_2")).unwrap();
+        measurement2.precise_time_ns = 120_000_000_000;
+
         let stat = measurement1.calculate_per_minute(&measurement2).unwrap();
         let in_percentages = stat.in_percentages();
 

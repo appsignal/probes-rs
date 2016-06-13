@@ -203,13 +203,13 @@ mod tests {
         let mut stats1 = HashMap::new();
         stats1.insert("sda1".to_owned(), helpers::disk_stat(0));
         let measurement1 = DiskStatsMeasurement {
-            precise_time_ns: 60_000_000,
+            precise_time_ns: 60_000_000_000,
             stats: stats1
         };
         let mut stats2 = HashMap::new();
         stats2.insert("sda1".to_owned(), helpers::disk_stat(120));
         let measurement2 = DiskStatsMeasurement {
-            precise_time_ns: 120_000_000,
+            precise_time_ns: 120_000_000_000,
             stats: stats2
         };
 
@@ -233,13 +233,13 @@ mod tests {
         let mut stats1 = HashMap::new();
         stats1.insert("sda1".to_owned(), helpers::disk_stat(0));
         let measurement1 = DiskStatsMeasurement {
-            precise_time_ns: 60_000_000,
+            precise_time_ns: 60_000_000_000,
             stats: stats1
         };
         let mut stats2 = HashMap::new();
         stats2.insert("sda1".to_owned(), helpers::disk_stat(120));
         let measurement2 = DiskStatsMeasurement {
-            precise_time_ns: 90_000_000,
+            precise_time_ns: 90_000_000_000,
             stats: stats2
         };
 
