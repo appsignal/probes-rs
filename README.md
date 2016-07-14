@@ -27,10 +27,12 @@ Pull requests welcome!
 
 ## Setup
 
-* Download and install [Vagrant](https://www.vagrantup.com/)
-* Install/start the virtual machine by running `vagrant up`
-* SSH to the vagrant machine by running `vagrant ssh`
-* Navigate to the probes folder `cd /vagrant`
-* Install rust nightly `multirust override nightly`
-* Run the tests `cargo test`
+* Download and install [Docker](https://www.docker.com/)
+* Build the images: `make build`
+* Make sure that the path where this code resided can be mounted as
+  a volume with Docker.
+* Run the tests on all images: `make test`
 * Add awesome features!
+
+The tests on Travis are only run directly on that VM. Make sure to run
+the full test suite manually before every release.
