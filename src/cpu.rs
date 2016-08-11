@@ -20,7 +20,12 @@ impl CpuMeasurement {
             nice: try!(super::time_adjusted("nice", next_measurement.stat.nice, self.stat.nice, time_difference)),
             system: try!(super::time_adjusted("system", next_measurement.stat.system, self.stat.system, time_difference)),
             idle: try!(super::time_adjusted("idle", next_measurement.stat.idle, self.stat.idle, time_difference)),
-            iowait: try!(super::time_adjusted("iowait", next_measurement.stat.iowait, self.stat.iowait, time_difference))
+            iowait: try!(super::time_adjusted("iowait", next_measurement.stat.iowait, self.stat.iowait, time_difference)),
+            irq: try!(super::time_adjusted("irq", next_measurement.stat.irq, self.stat.irq, time_difference)),
+            softirq: try!(super::time_adjusted("softirq", next_measurement.stat.softirq, self.stat.softirq, time_difference)),
+            steal: try!(super::time_adjusted("steal", next_measurement.stat.steal, self.stat.steal, time_difference)),
+            guest: try!(super::time_adjusted("guest", next_measurement.stat.guest, self.stat.guest, time_difference)),
+            guestnice: try!(super::time_adjusted("guestnice", next_measurement.stat.guestnice, self.stat.guestnice, time_difference))
         })
     }
 }
@@ -32,20 +37,33 @@ pub struct CpuStat {
     pub nice: u64,
     pub system: u64,
     pub idle: u64,
-    pub iowait: u64
+    pub iowait: u64,
+    pub irq: u64,
+    pub softirq: u64,
+    pub steal: u64,
+    pub guest: u64,
+    pub guestnice: u64
 }
 
 impl CpuStat {
     /// Calculate the weight of the various components in percentages
     pub fn in_percentages(&self) -> CpuStatPercentages {
-        let total = (self.user + self.system + self.idle) as f64;
+        let idlealltime = self.idle + self.iowait;
+        let systemalltime = self.system + self.irq + self.softirq;
+        let virtualtime = self.guest + self.guestnice;
+        let total = (self.user + self.nice + systemalltime + idlealltime + self.steal + virtualtime) as f64;
 
         CpuStatPercentages {
             user: Self::percentage_of_total(self.user, total),
             nice: Self::percentage_of_total(self.nice, total),
             system: Self::percentage_of_total(self.system, total),
             idle: Self::percentage_of_total(self.idle, total),
-            iowait: Self::percentage_of_total(self.iowait, total)
+            iowait: Self::percentage_of_total(self.iowait, total),
+            irq: Self::percentage_of_total(self.irq, total),
+            softirq: Self::percentage_of_total(self.softirq, total),
+            steal: Self::percentage_of_total(self.steal, total),
+            guest: Self::percentage_of_total(self.guest, total),
+            guestnice: Self::percentage_of_total(self.guestnice, total)
         }
     }
 
@@ -61,7 +79,12 @@ pub struct CpuStatPercentages {
     pub nice: f32,
     pub system: f32,
     pub idle: f32,
-    pub iowait: f32
+    pub iowait: f32,
+    pub irq: f32,
+    pub softirq: f32,
+    pub steal: f32,
+    pub guest: f32,
+    pub guestnice: f32
 }
 
 #[cfg(target_os = "linux")]
@@ -90,18 +113,31 @@ mod os {
             .skip(1)
             .collect();
 
-        if stats.len() < 5 {
+        let length = stats.len();
+        if length < 5 {
             return Err(ProbeError::UnexpectedContent("Incorrect number of stats".to_owned()));
         }
+
+        let mut usertime = try!(parse_u64(stats[0]));
+        let mut nicetime = try!(parse_u64(stats[1]));
+        let guest = try!(parse_u64(*stats.get(8).unwrap_or(&"0")));
+        let guestnice = try!(parse_u64(*stats.get(9).unwrap_or(&"0")));
+        usertime = usertime - guest;
+        nicetime = nicetime - guestnice;
 
         Ok(CpuMeasurement {
             precise_time_ns: time,
             stat: CpuStat {
-                user: try!(parse_u64(stats[0])),
-                nice: try!(parse_u64(stats[1])),
+                user: usertime,
+                nice: nicetime,
                 system: try!(parse_u64(stats[2])),
                 idle: try!(parse_u64(stats[3])),
-                iowait: try!(parse_u64(stats[4]))
+                iowait: try!(parse_u64(stats[4])),
+                irq: try!(parse_u64(*stats.get(5).unwrap_or(&"0"))),
+                softirq: try!(parse_u64(*stats.get(6).unwrap_or(&"0"))),
+                steal: try!(parse_u64(*stats.get(7).unwrap_or(&"0"))),
+                guest: guest,
+                guestnice: guestnice
             }
         })
     }
@@ -117,11 +153,31 @@ mod test {
     #[test]
     fn test_read_cpu_measurement() {
         let measurement = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat")).unwrap();
-        assert_eq!(measurement.stat.user, 0);
-        assert_eq!(measurement.stat.nice, 1);
-        assert_eq!(measurement.stat.system, 2);
-        assert_eq!(measurement.stat.idle, 3);
-        assert_eq!(measurement.stat.iowait, 4);
+        assert_eq!(measurement.stat.user, 8);
+        assert_eq!(measurement.stat.nice, 2);
+        assert_eq!(measurement.stat.system, 7);
+        assert_eq!(measurement.stat.idle, 6);
+        assert_eq!(measurement.stat.iowait, 5);
+        assert_eq!(measurement.stat.irq, 4);
+        assert_eq!(measurement.stat.softirq, 3);
+        assert_eq!(measurement.stat.steal, 1);
+        assert_eq!(measurement.stat.guest, 2);
+        assert_eq!(measurement.stat.guestnice, 1);
+    }
+
+    #[test]
+    fn test_read_cpu_measurement_from_partial() {
+        let measurement = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_partial")).unwrap();
+        assert_eq!(measurement.stat.user, 10);
+        assert_eq!(measurement.stat.nice, 3);
+        assert_eq!(measurement.stat.system, 7);
+        assert_eq!(measurement.stat.idle, 6);
+        assert_eq!(measurement.stat.iowait, 5);
+        assert_eq!(measurement.stat.irq, 0);
+        assert_eq!(measurement.stat.softirq, 0);
+        assert_eq!(measurement.stat.steal, 0);
+        assert_eq!(measurement.stat.guest, 0);
+        assert_eq!(measurement.stat.guestnice, 0);
     }
 
     #[test]
@@ -158,7 +214,12 @@ mod test {
                 nice: 0,
                 system: 0,
                 idle: 0,
-                iowait: 0
+                iowait: 0,
+                irq: 0,
+                softirq: 0,
+                steal: 0,
+                guest: 0,
+                guestnice: 0
             }
         };
 
@@ -169,7 +230,12 @@ mod test {
                 nice: 0,
                 system: 0,
                 idle: 0,
-                iowait: 0
+                iowait: 0,
+                irq: 0,
+                softirq: 0,
+                steal: 0,
+                guest: 0,
+                guestnice: 0
             }
         };
 
@@ -188,7 +254,12 @@ mod test {
                 nice: 1100,
                 system: 1200,
                 idle: 1300,
-                iowait: 1400
+                iowait: 1400,
+                irq: 50,
+                softirq: 10,
+                steal: 20,
+                guest: 200,
+                guestnice: 100
             }
         };
 
@@ -199,7 +270,12 @@ mod test {
                 nice: 1106,
                 system: 1206,
                 idle: 1306,
-                iowait: 1406
+                iowait: 1406,
+                irq: 56,
+                softirq: 16,
+                steal: 26,
+                guest: 206,
+                guestnice: 106
             }
         };
 
@@ -208,7 +284,12 @@ mod test {
             nice: 6,
             system: 6,
             idle: 6,
-            iowait: 6
+            iowait: 6,
+            irq: 6,
+            softirq: 6,
+            steal: 6,
+            guest: 6,
+            guestnice: 6
         };
 
         let stat = measurement1.calculate_per_minute(&measurement2).unwrap();
@@ -225,7 +306,12 @@ mod test {
                 nice: 1100,
                 system: 1200,
                 idle: 1300,
-                iowait: 1400
+                iowait: 1400,
+                irq: 50,
+                softirq: 10,
+                steal: 20,
+                guest: 200,
+                guestnice: 100
             }
         };
 
@@ -236,7 +322,12 @@ mod test {
                 nice: 1106,
                 system: 1206,
                 idle: 1306,
-                iowait: 1406
+                iowait: 1406,
+                irq: 56,
+                softirq: 16,
+                steal: 26,
+                guest: 206,
+                guestnice: 106
             }
         };
 
@@ -245,7 +336,12 @@ mod test {
             nice: 3,
             system: 3,
             idle: 3,
-            iowait: 3
+            iowait: 3,
+            irq: 3,
+            softirq: 3,
+            steal: 3,
+            guest: 3,
+            guestnice: 3
         };
 
         let stat = measurement1.calculate_per_minute(&measurement2).unwrap();
@@ -262,7 +358,12 @@ mod test {
                 nice: 1100,
                 system: 1200,
                 idle: 1300,
-                iowait: 1400
+                iowait: 1400,
+                irq: 50,
+                softirq: 10,
+                steal: 20,
+                guest: 200,
+                guestnice: 100
             }
         };
 
@@ -273,7 +374,12 @@ mod test {
                 nice: 116,
                 system: 126,
                 idle: 136,
-                iowait: 146
+                iowait: 146,
+                irq: 56,
+                softirq: 16,
+                steal: 26,
+                guest: 206,
+                guestnice: 106
             }
         };
 
@@ -286,19 +392,29 @@ mod test {
     #[test]
     fn test_in_percentages() {
         let stat = CpuStat {
-            user: 500,
-            nice: 100,
-            system: 250,
-            idle: 250,
-            iowait: 100
+            user: 450,
+            nice: 70,
+            system: 100,
+            idle: 100,
+            iowait: 120,
+            irq: 10,
+            softirq: 20,
+            steal: 50,
+            guest: 50,
+            guestnice: 30
         };
 
         let expected = CpuStatPercentages {
-            user: 50.0,
-            nice: 10.0,
-            system: 25.0,
-            idle: 25.0,
-            iowait: 10.0
+            user: 45.0,
+            nice: 7.0,
+            system: 10.0,
+            idle: 10.0,
+            iowait: 12.0,
+            irq: 1.0,
+            softirq: 2.0,
+            steal: 5.0,
+            guest: 5.0,
+            guestnice: 3.0
         };
 
         assert_eq!(stat.in_percentages(), expected);
@@ -307,19 +423,29 @@ mod test {
     #[test]
     fn test_in_percentages_fractions() {
         let stat = CpuStat {
-            user: 495,
-            nice: 100,
-            system: 250,
-            idle: 255,
-            iowait: 100
+            user: 445,
+            nice: 65,
+            system: 100,
+            idle: 100,
+            iowait: 147,
+            irq: 1,
+            softirq: 2,
+            steal: 50,
+            guest: 55,
+            guestnice: 35
         };
 
         let expected = CpuStatPercentages {
-            user: 49.5,
-            nice: 10.0,
-            system: 25.0,
-            idle: 25.5,
-            iowait: 10.0
+            user: 44.5,
+            nice: 6.5,
+            system: 10.0,
+            idle: 10.0,
+            iowait: 14.7,
+            irq: 0.1,
+            softirq: 0.2,
+            steal: 5.0,
+            guest: 5.5,
+            guestnice: 3.5
         };
 
         assert_eq!(stat.in_percentages(), expected);
@@ -341,20 +467,38 @@ mod test {
         assert!(in_percentages.user > 4.0);
         assert!(in_percentages.user < 5.0);
 
-        assert!(in_percentages.nice < 0.1);
+        assert!(in_percentages.nice < 0.21);
+        assert!(in_percentages.nice > 0.2);
 
-        assert!(in_percentages.system > 1.0);
-        assert!(in_percentages.system < 2.0);
+        assert!(in_percentages.system > 1.51);
+        assert!(in_percentages.system < 1.52);
 
-        assert!(in_percentages.idle > 93.5);
-        assert!(in_percentages.idle < 94.5);
+        assert!(in_percentages.idle > 92.3);
+        assert!(in_percentages.idle < 92.4);
 
-        assert!(in_percentages.iowait < 0.1);
+        assert!(in_percentages.iowait < 0.05);
+        assert!(in_percentages.iowait > 0.04);
 
-        // The total of all values should be 100.
+        assert!(in_percentages.irq < 0.5);
+        assert!(in_percentages.irq > 0.49);
 
-        let total = in_percentages.user + in_percentages.nice + in_percentages.system +
-                      in_percentages.idle + in_percentages.iowait;
+        assert!(in_percentages.softirq > 0.028);
+        assert!(in_percentages.softirq < 0.029);
+
+        assert!(in_percentages.steal < 0.41);
+        assert!(in_percentages.steal > 0.40);
+
+        assert!(in_percentages.guest < 0.41);
+        assert!(in_percentages.guest > 0.40);
+
+        assert!(in_percentages.guestnice < 0.21);
+        assert!(in_percentages.guestnice > 0.20);
+
+        // The total of these values should be 100.
+        let idlealltime = in_percentages.idle + in_percentages.iowait;
+        let systemalltime = in_percentages.system + in_percentages.irq + in_percentages.softirq;
+        let virtualtime = in_percentages.guest + in_percentages.guestnice;
+        let total = (in_percentages.user + in_percentages.nice + systemalltime + idlealltime + in_percentages.steal + virtualtime) as f64;
 
         assert!(total < 100.1);
         assert!(total > 99.9);
