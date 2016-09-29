@@ -39,7 +39,7 @@ impl NetworkTrafficMeasurement {
     }
 }
 
-/// Network traffic in kilobytes.
+/// Network traffic in bytes.
 #[derive(Debug,PartialEq)]
 pub struct NetworkTraffic {
     pub received: u64,
