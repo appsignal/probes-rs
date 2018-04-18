@@ -2,6 +2,7 @@ extern crate libc;
 extern crate time;
 
 mod error;
+pub mod container;
 pub mod cpu;
 pub mod disk_stats;
 pub mod disk_usage;
