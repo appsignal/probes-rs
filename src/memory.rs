@@ -149,6 +149,7 @@ mod os {
             Ok(value) => memory.swap_total = bytes_to_kilo_bytes(value),
             Err(_) => ()
         }
+        let mut cache = 0;
         let mut swap_used: Option<u64> = None;
 
         for line in reader.lines() {
@@ -160,6 +161,7 @@ mod os {
                 // TODO: or this one for memory total? /sys/fs/cgroup/memory/memory.limit_in_bytes
                 "hierarchical_memory_limit" => memory.total = bytes_to_kilo_bytes(value),
                 "swap" => swap_used = Some(bytes_to_kilo_bytes(value)),
+                "cache" => memory.cached = bytes_to_kilo_bytes(cache),
                 _ => ()
             };
         }
