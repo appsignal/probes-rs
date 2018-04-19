@@ -59,7 +59,7 @@ mod os {
 
     use super::{Memory,MEMORY_NUMBER_OF_FIELDS};
     use super::super::{ProbeError,Result,container};
-    use super::super::{file_to_buf_reader,parse_u64};
+    use super::super::{file_to_buf_reader,parse_u64,read_file_value_as_u64};
 
     #[inline]
     pub fn read() -> Result<Memory> {
@@ -171,13 +171,6 @@ mod os {
         }
 
         Ok(memory)
-    }
-
-    fn read_file_value_as_u64(path: &Path) -> Result<u64> {
-        let mut reader = try!(file_to_buf_reader(path));
-        let mut line = String::new();
-        try!(reader.read_line(&mut line));
-        parse_u64(&line.trim())
     }
 
     fn bytes_to_kilo_bytes(bytes: u64) -> u64 {
