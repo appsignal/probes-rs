@@ -16,6 +16,7 @@ impl CpuMeasurement {
         let time_difference = calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns)?;
 
         Ok(CpuStat {
+            total: super::time_adjusted("total", next_measurement.stat.total, self.stat.total, time_difference)?,
             user: super::time_adjusted("user", next_measurement.stat.user, self.stat.user, time_difference)?,
             nice: super::time_adjusted("nice", next_measurement.stat.nice, self.stat.nice, time_difference)?,
             system: super::time_adjusted("system", next_measurement.stat.system, self.stat.system, time_difference)?,
@@ -33,6 +34,7 @@ impl CpuMeasurement {
 /// Cpu stats for a minute
 #[derive(Debug,PartialEq)]
 pub struct CpuStat {
+    pub total: u64,
     pub user: u64,
     pub nice: u64,
     pub system: u64,
@@ -48,27 +50,22 @@ pub struct CpuStat {
 impl CpuStat {
     /// Calculate the weight of the various components in percentages
     pub fn in_percentages(&self) -> CpuStatPercentages {
-        let idlealltime = self.idle + self.iowait;
-        let systemalltime = self.system + self.irq + self.softirq;
-        let virtualtime = self.guest + self.guestnice;
-        let total = (self.user + self.nice + systemalltime + idlealltime + self.steal + virtualtime) as f64;
-
         CpuStatPercentages {
-            user: Self::percentage_of_total(self.user, total),
-            nice: Self::percentage_of_total(self.nice, total),
-            system: Self::percentage_of_total(self.system, total),
-            idle: Self::percentage_of_total(self.idle, total),
-            iowait: Self::percentage_of_total(self.iowait, total),
-            irq: Self::percentage_of_total(self.irq, total),
-            softirq: Self::percentage_of_total(self.softirq, total),
-            steal: Self::percentage_of_total(self.steal, total),
-            guest: Self::percentage_of_total(self.guest, total),
-            guestnice: Self::percentage_of_total(self.guestnice, total)
+            user: self.percentage_of_total(self.user),
+            nice: self.percentage_of_total(self.nice),
+            system: self.percentage_of_total(self.system),
+            idle: self.percentage_of_total(self.idle),
+            iowait: self.percentage_of_total(self.iowait),
+            irq: self.percentage_of_total(self.irq),
+            softirq: self.percentage_of_total(self.softirq),
+            steal: self.percentage_of_total(self.steal),
+            guest: self.percentage_of_total(self.guest),
+            guestnice: self.percentage_of_total(self.guestnice)
         }
     }
 
-    fn percentage_of_total(value: u64, total: f64) -> f32 {
-        (value as f64 / total * 100.0) as f32
+    fn percentage_of_total(&self, value: u64) -> f32 {
+        (value as f64 / self.total as f64 * 100.0) as f32
     }
 }
 
@@ -118,27 +115,32 @@ mod os {
             return Err(ProbeError::UnexpectedContent("Incorrect number of stats".to_owned()));
         }
 
-        let mut usertime = parse_u64(stats[0])?;
-        let mut nicetime = parse_u64(stats[1])?;
+        let usertime = parse_u64(stats[0])?;
+        let nicetime = parse_u64(stats[1])?;
         let guest = parse_u64(*stats.get(8).unwrap_or(&"0"))?;
         let guestnice = parse_u64(*stats.get(9).unwrap_or(&"0"))?;
-        usertime = usertime - guest;
-        nicetime = nicetime - guestnice;
+
+        let mut cpu = CpuStat {
+            total: 0,
+            user: usertime - guest,
+            nice: nicetime - guestnice,
+            system: parse_u64(stats[2])?,
+            idle: parse_u64(stats[3])?,
+            iowait: parse_u64(stats[4])?,
+            irq: parse_u64(*stats.get(5).unwrap_or(&"0"))?,
+            softirq: parse_u64(*stats.get(6).unwrap_or(&"0"))?,
+            steal: parse_u64(*stats.get(7).unwrap_or(&"0"))?,
+            guest: guest,
+            guestnice: guestnice
+        };
+        let idlealltime = cpu.idle + cpu.iowait;
+        let systemalltime = cpu.system + cpu.irq + cpu.softirq;
+        let virtualtime = cpu.guest + cpu.guestnice;
+        cpu.total = cpu.user + cpu.nice + systemalltime + idlealltime + cpu.steal + virtualtime;
 
         Ok(CpuMeasurement {
             precise_time_ns: time,
-            stat: CpuStat {
-                user: usertime,
-                nice: nicetime,
-                system: parse_u64(stats[2])?,
-                idle: parse_u64(stats[3])?,
-                iowait: parse_u64(stats[4])?,
-                irq: parse_u64(*stats.get(5).unwrap_or(&"0"))?,
-                softirq: parse_u64(*stats.get(6).unwrap_or(&"0"))?,
-                steal: parse_u64(*stats.get(7).unwrap_or(&"0"))?,
-                guest: guest,
-                guestnice: guestnice
-            }
+            stat: cpu
         })
     }
 }
@@ -153,31 +155,35 @@ mod test {
     #[test]
     fn test_read_cpu_measurement() {
         let measurement = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat")).unwrap();
-        assert_eq!(measurement.stat.user, 8);
-        assert_eq!(measurement.stat.nice, 2);
-        assert_eq!(measurement.stat.system, 7);
-        assert_eq!(measurement.stat.idle, 6);
-        assert_eq!(measurement.stat.iowait, 5);
-        assert_eq!(measurement.stat.irq, 4);
-        assert_eq!(measurement.stat.softirq, 3);
-        assert_eq!(measurement.stat.steal, 1);
-        assert_eq!(measurement.stat.guest, 2);
-        assert_eq!(measurement.stat.guestnice, 1);
+        let cpu = measurement.stat;
+        assert_eq!(cpu.total, 39);
+        assert_eq!(cpu.user, 8);
+        assert_eq!(cpu.nice, 2);
+        assert_eq!(cpu.system, 7);
+        assert_eq!(cpu.idle, 6);
+        assert_eq!(cpu.iowait, 5);
+        assert_eq!(cpu.irq, 4);
+        assert_eq!(cpu.softirq, 3);
+        assert_eq!(cpu.steal, 1);
+        assert_eq!(cpu.guest, 2);
+        assert_eq!(cpu.guestnice, 1);
     }
 
     #[test]
     fn test_read_cpu_measurement_from_partial() {
         let measurement = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_partial")).unwrap();
-        assert_eq!(measurement.stat.user, 10);
-        assert_eq!(measurement.stat.nice, 3);
-        assert_eq!(measurement.stat.system, 7);
-        assert_eq!(measurement.stat.idle, 6);
-        assert_eq!(measurement.stat.iowait, 5);
-        assert_eq!(measurement.stat.irq, 0);
-        assert_eq!(measurement.stat.softirq, 0);
-        assert_eq!(measurement.stat.steal, 0);
-        assert_eq!(measurement.stat.guest, 0);
-        assert_eq!(measurement.stat.guestnice, 0);
+        let cpu = measurement.stat;
+        assert_eq!(cpu.total, 31);
+        assert_eq!(cpu.user, 10);
+        assert_eq!(cpu.nice, 3);
+        assert_eq!(cpu.system, 7);
+        assert_eq!(cpu.idle, 6);
+        assert_eq!(cpu.iowait, 5);
+        assert_eq!(cpu.irq, 0);
+        assert_eq!(cpu.softirq, 0);
+        assert_eq!(cpu.steal, 0);
+        assert_eq!(cpu.guest, 0);
+        assert_eq!(cpu.guestnice, 0);
     }
 
     #[test]
@@ -210,6 +216,7 @@ mod test {
         let measurement1 = CpuMeasurement {
             precise_time_ns: 90_000_000_000,
             stat: CpuStat {
+                total: 0,
                 user: 0,
                 nice: 0,
                 system: 0,
@@ -226,6 +233,7 @@ mod test {
         let measurement2 = CpuMeasurement {
             precise_time_ns: 60_000_000_000,
             stat: CpuStat {
+                total: 0,
                 user: 0,
                 nice: 0,
                 system: 0,
@@ -250,6 +258,7 @@ mod test {
         let measurement1 = CpuMeasurement {
             precise_time_ns: 60_000_000_000,
             stat: CpuStat {
+                total: 6380,
                 user: 1000,
                 nice: 1100,
                 system: 1200,
@@ -266,6 +275,7 @@ mod test {
         let measurement2 = CpuMeasurement {
             precise_time_ns: 120_000_000_000,
             stat: CpuStat {
+                total: 6440,
                 user: 1006,
                 nice: 1106,
                 system: 1206,
@@ -280,6 +290,7 @@ mod test {
         };
 
         let expected = CpuStat {
+            total: 60,
             user: 6,
             nice: 6,
             system: 6,
@@ -302,6 +313,7 @@ mod test {
         let measurement1 = CpuMeasurement {
             precise_time_ns: 60_000_000_000,
             stat: CpuStat {
+                total: 6380,
                 user: 1000,
                 nice: 1100,
                 system: 1200,
@@ -318,6 +330,7 @@ mod test {
         let measurement2 = CpuMeasurement {
             precise_time_ns: 90_000_000_000,
             stat: CpuStat {
+                total: 6440,
                 user: 1006,
                 nice: 1106,
                 system: 1206,
@@ -332,6 +345,7 @@ mod test {
         };
 
         let expected = CpuStat {
+            total: 30,
             user: 3,
             nice: 3,
             system: 3,
@@ -354,6 +368,7 @@ mod test {
         let measurement1 = CpuMeasurement {
             precise_time_ns: 60_000_000_000,
             stat: CpuStat {
+                total: 6380,
                 user: 1000,
                 nice: 1100,
                 system: 1200,
@@ -370,6 +385,7 @@ mod test {
         let measurement2 = CpuMeasurement {
             precise_time_ns: 90_000_000_000,
             stat: CpuStat {
+                total: 1040,
                 user: 106,
                 nice: 116,
                 system: 126,
@@ -392,6 +408,7 @@ mod test {
     #[test]
     fn test_in_percentages() {
         let stat = CpuStat {
+            total: 1000,
             user: 450,
             nice: 70,
             system: 100,
@@ -423,6 +440,7 @@ mod test {
     #[test]
     fn test_in_percentages_fractions() {
         let stat = CpuStat {
+            total: 1000,
             user: 445,
             nice: 65,
             system: 100,
