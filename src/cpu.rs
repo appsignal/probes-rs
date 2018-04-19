@@ -1,5 +1,6 @@
-use std::path::Path;
 use super::{Result,calculate_time_difference};
+
+const CPU_SYS_NUMBER_OF_FIELDS: usize = 2;
 
 /// Measurement of cpu stats at a certain time
 #[derive(Debug,PartialEq)]
@@ -84,10 +85,16 @@ pub struct CpuStatPercentages {
     pub guestnice: f32
 }
 
+/// Read the current CPU stats of the system.
 #[cfg(target_os = "linux")]
 pub fn read() -> Result<CpuMeasurement> {
-    // columns: user nice system idle iowait irq softirq
-    os::read_and_parse_proc_stat(&Path::new("/proc/stat"))
+    os::read()
+}
+
+/// Read the current CPU stats of the container.
+#[cfg(target_os = "linux")]
+pub fn read_from_container() -> Result<CpuMeasurement> {
+    os::read_from_container()
 }
 
 #[cfg(target_os = "linux")]
@@ -95,12 +102,28 @@ mod os {
     use std::path::Path;
     use std::io::BufRead;
     use time;
-    use super::super::{Result,file_to_buf_reader,parse_u64,path_to_string};
-    use super::{CpuMeasurement,CpuStat};
+    use super::super::{Result,file_to_buf_reader,parse_u64,path_to_string,read_file_value_as_u64,dir_exists};
+    use super::{CpuMeasurement,CpuStat,CPU_SYS_NUMBER_OF_FIELDS};
     use error::ProbeError;
+
+    #[inline]
+    pub fn read() -> Result<CpuMeasurement> {
+        read_and_parse_proc_stat(&Path::new("/proc/stat"))
+    }
+
+    pub fn read_from_container() -> Result<CpuMeasurement> {
+        let sys_fs_dir = Path::new("/sys/fs/cgroup/cpuacct/");
+        if dir_exists(sys_fs_dir) {
+            read_and_parse_sys_stat(&sys_fs_dir)
+        } else {
+            let message = format!("Directory `{}` not found", sys_fs_dir.to_str().unwrap_or("unknown path"));
+            Err(ProbeError::UnexpectedContent(message))
+        }
+    }
 
     pub fn read_and_parse_proc_stat(path: &Path) -> Result<CpuMeasurement> {
         let mut line = String::new();
+        // columns: user nice system idle iowait irq softirq
         let mut reader = file_to_buf_reader(path)?;
         let time = time::precise_time_ns();
         reader.read_line(&mut line).map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
@@ -143,17 +166,85 @@ mod os {
             stat: cpu
         })
     }
+
+    pub fn read_and_parse_sys_stat(path: &Path) -> Result<CpuMeasurement> {
+        let time = time::precise_time_ns();
+        let reader = file_to_buf_reader(&path.join("cpuacct.stat"))?;
+        let total = nano_to_user(read_file_value_as_u64(&path.join("cpuacct.usage"))?);
+
+        let mut cpu = CpuStat {
+            total: total,
+            user: 0,
+            system: 0,
+            nice: 0,
+            idle: 0,
+            iowait: 0,
+            irq: 0,
+            softirq: 0,
+            steal: 0,
+            guest: 0,
+            guestnice: 0
+        };
+
+        let mut fields_encountered = 0;
+        for line in reader.lines() {
+            let line = line.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
+            let segments: Vec<&str> = line.split_whitespace().collect();
+            let value = parse_u64(&segments[1])?;
+            fields_encountered += match segments[0] {
+                "user" => {
+                    cpu.user = value;
+                    1
+                },
+                "system" => {
+                    cpu.system = value;
+                    1
+                },
+                _ => 0
+            };
+
+            if fields_encountered == CPU_SYS_NUMBER_OF_FIELDS {
+                break
+            }
+        }
+
+        if fields_encountered != CPU_SYS_NUMBER_OF_FIELDS {
+            return Err(ProbeError::UnexpectedContent("Did not encounter all expected fields".to_owned()))
+        }
+
+        Ok(CpuMeasurement {
+            precise_time_ns: time,
+            stat: cpu
+        })
+    }
+
+    // [CPU usage] times are expressed in ticks of 1/100th of a second, also called "user jiffies".
+    // There are USER_HZ “jiffies” per second, and on x86 systems, USER_HZ is 100.
+    // See: https://docs.docker.com/config/containers/runmetrics/#cpu-metrics-cpuacctstat
+    fn nano_to_user(value: u64) -> u64 {
+        value.checked_div(10_000_000).unwrap_or(0)
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::{CpuMeasurement,CpuStat,CpuStatPercentages};
-    use super::os::read_and_parse_proc_stat;
+    use super::os::{read_and_parse_proc_stat,read_and_parse_sys_stat};
     use std::path::Path;
     use error::ProbeError;
 
     #[test]
-    fn test_read_cpu_measurement() {
+    fn test_read_cpu() {
+        assert!(super::read().is_ok());
+    }
+
+    #[test]
+    fn test_read_from_container() {
+        assert!(super::read_from_container().is_ok());
+    }
+
+    #[test]
+    fn test_read_proc_measurement() {
         let measurement = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat")).unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total, 39);
@@ -170,7 +261,7 @@ mod test {
     }
 
     #[test]
-    fn test_read_cpu_measurement_from_partial() {
+    fn test_read_proc_measurement_from_partial() {
         let measurement = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_partial")).unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total, 31);
@@ -187,7 +278,7 @@ mod test {
     }
 
     #[test]
-    fn test_wrong_path() {
+    fn test_proc_wrong_path() {
         match read_and_parse_proc_stat(&Path::new("bananas")) {
             Err(ProbeError::IO(_, _)) => (),
             r => panic!("Unexpected result: {:?}", r)
@@ -206,6 +297,48 @@ mod test {
     fn test_read_and_parse_proc_stat_garbage() {
         let path = Path::new("fixtures/linux/cpu/proc_stat_garbage");
         match read_and_parse_proc_stat(&path) {
+            Err(ProbeError::UnexpectedContent(_)) => (),
+            r => panic!("Unexpected result: {:?}", r)
+        }
+    }
+
+    #[test]
+    fn test_read_sys_measurement() {
+        let measurement = read_and_parse_sys_stat(&Path::new("fixtures/linux/sys/fs/cgroup/cpuacct/")).unwrap();
+        let cpu = measurement.stat;
+        assert_eq!(cpu.total, 1395);
+        assert_eq!(cpu.user, 404);
+        assert_eq!(cpu.nice, 0);
+        assert_eq!(cpu.system, 749);
+        assert_eq!(cpu.idle, 0);
+        assert_eq!(cpu.iowait, 0);
+        assert_eq!(cpu.irq, 0);
+        assert_eq!(cpu.softirq, 0);
+        assert_eq!(cpu.steal, 0);
+        assert_eq!(cpu.guest, 0);
+        assert_eq!(cpu.guestnice, 0);
+    }
+
+    #[test]
+    fn test_read_sys_wrong_path() {
+        match read_and_parse_sys_stat(&Path::new("bananas")) {
+            Err(ProbeError::IO(_, _)) => (),
+            r => panic!("Unexpected result: {:?}", r)
+        }
+    }
+
+    #[test]
+    fn test_read_and_parse_sys_stat_incomplete() {
+        match read_and_parse_sys_stat(&Path::new("fixtures/linux/sys/fs/cgroup/cpuacct_incomplete/")) {
+            Err(ProbeError::UnexpectedContent(_)) => (),
+            r => panic!("Unexpected result: {:?}", r)
+        }
+    }
+
+    #[test]
+    fn test_read_and_parse_sys_stat_garbage() {
+        let path = Path::new("fixtures/linux/sys/fs/cgroup/cpuacct_garbage/");
+        match read_and_parse_sys_stat(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }

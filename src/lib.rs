@@ -13,6 +13,7 @@ pub mod process_memory;
 use std::fs;
 use std::io;
 use std::io::Read;
+use std::io::BufRead;
 use std::path::Path;
 use std::result;
 
@@ -71,6 +72,14 @@ fn parse_u64(segment: &str) -> Result<u64> {
 #[inline]
 fn dir_exists(path: &Path) -> bool {
     path.exists() && path.is_dir()
+}
+
+#[inline]
+fn read_file_value_as_u64(path: &Path) -> Result<u64> {
+    let mut reader = try!(file_to_buf_reader(path));
+    let mut line = String::new();
+    reader.read_line(&mut line).map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
+    parse_u64(&line.trim())
 }
 
 #[cfg(test)]
