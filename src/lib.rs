@@ -14,6 +14,7 @@ pub mod process_memory;
 use std::fs;
 use std::io;
 use std::io::Read;
+use std::io::BufRead;
 use std::path::Path;
 use std::result;
 
@@ -57,6 +58,14 @@ fn parse_u64(segment: &str) -> Result<u64> {
     segment.parse().map_err(|_| {
         ProbeError::UnexpectedContent(format!("Could not parse '{}' as u64", segment).to_owned())
     })
+}
+
+#[inline]
+fn read_file_value_as_u64(path: &Path) -> Result<u64> {
+    let mut reader = try!(file_to_buf_reader(path));
+    let mut line = String::new();
+    try!(reader.read_line(&mut line));
+    parse_u64(&line.trim())
 }
 
 #[cfg(test)]
