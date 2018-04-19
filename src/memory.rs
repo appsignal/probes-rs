@@ -144,7 +144,11 @@ mod os {
         let reader = try!(file_to_buf_reader(&path.join("memory.stat")));
         let used_memory = bytes_to_kilo_bytes(try!(read_file_value_as_u64(&path.join("memory.usage_in_bytes"))));
         // TODO: or this one for swap total? /sys/fs/cgroup/memory/memory.stat: hierarchical_memsw_limit
-        memory.swap_total = bytes_to_kilo_bytes(try!(read_file_value_as_u64(&path.join("memory.memsw.limit_in_bytes"))));
+        // If swap is not configured for the container, read 0 as value
+        match read_file_value_as_u64(&path.join("memory.memsw.limit_in_bytes")) {
+            Ok(value) => memory.swap_total = bytes_to_kilo_bytes(value),
+            Err(_) => ()
+        }
         let mut swap_used: Option<u64> = None;
 
         for line in reader.lines() {
@@ -155,7 +159,6 @@ mod os {
             match segments[0] {
                 // TODO: or this one for memory total? /sys/fs/cgroup/memory/memory.limit_in_bytes
                 "hierarchical_memory_limit" => memory.total = bytes_to_kilo_bytes(value),
-                "cache" => memory.cached = bytes_to_kilo_bytes(value),
                 "swap" => swap_used = Some(bytes_to_kilo_bytes(value)),
                 _ => ()
             };
@@ -267,10 +270,73 @@ mod tests {
             total: 512000, // 500mb
             free: 444472, // total - used
             buffers: 0,
-            cached: 58928,
+            cached: 0,
             swap_total: 2000,
-            swap_free: 1000,
+            swap_free: 1500,
         };
         assert_eq!(expected, memory);
+
+        // Physical memory
+        assert_eq!(512000, memory.total());
+        assert_eq!(444472, memory.free());
+        assert_eq!(67528, memory.used());
+
+        // Swap space
+        assert_eq!(2000, memory.swap_total());
+        assert_eq!(1500, memory.swap_free());
+        assert_eq!(500, memory.swap_used());
+    }
+
+    #[test]
+    fn test_read_and_parse_sys_memory_wrong_path() {
+        let path = Path::new("/nonsense");
+        match super::os::read_and_parse_sys_memory(&path) {
+            Err(ProbeError::IO(_)) => (),
+            r => panic!("Unexpected result: {:?}", r)
+        }
+    }
+
+    #[test]
+    fn test_read_and_parse_sys_memory_incomplete() {
+        let path = Path::new("fixtures/linux/sys/fs/cgroup/memory_incomplete/");
+        match super::os::read_and_parse_sys_memory(&path) {
+            Err(ProbeError::UnexpectedContent(_)) => (),
+            r => panic!("Unexpected result: {:?}", r)
+        }
+    }
+
+    #[test]
+    fn test_read_and_parse_sys_memory_garbage() {
+        let path = Path::new("fixtures/linux/sys/fs/cgroup/memory_garbage/");
+        match super::os::read_and_parse_sys_memory(&path) {
+            Err(ProbeError::UnexpectedContent(_)) => (),
+            r => panic!("Unexpected result: {:?}", r)
+        }
+    }
+
+    #[test]
+    fn test_read_and_parse_sys_memory_no_swap() {
+        let path = Path::new("fixtures/linux/sys/fs/cgroup/memory_without_swap/");
+        let memory = super::os::read_and_parse_sys_memory(&path).unwrap();
+
+        let expected = Memory {
+            total: 512000,
+            free: 444472,
+            buffers: 0,
+            cached: 0,
+            swap_total: 0, // Reads 0 swap
+            swap_free: 0,  // Reads 0 swap
+        };
+        assert_eq!(expected, memory);
+
+        // Physical memory
+        assert_eq!(512000, memory.total());
+        assert_eq!(444472, memory.free());
+        assert_eq!(67528, memory.used());
+
+        // Swap space
+        assert_eq!(0, memory.swap_total());
+        assert_eq!(0, memory.swap_free());
+        assert_eq!(0, memory.swap_used());
     }
 }

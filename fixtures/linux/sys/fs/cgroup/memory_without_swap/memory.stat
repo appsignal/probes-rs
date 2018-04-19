@@ -4,7 +4,7 @@ rss_huge 0
 mapped_file 3710976
 dirty 0
 writeback 0
-swap 512000
+swap 0
 pgpgin 56963
 pgpgout 53120
 pgfault 87136
@@ -22,7 +22,7 @@ total_rss_huge 0
 total_mapped_file 3710976
 total_dirty 0
 total_writeback 0
-total_swap 2048000
+total_swap 0
 total_pgpgin 56963
 total_pgpgout 53120
 total_pgfault 87136
