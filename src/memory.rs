@@ -4,10 +4,12 @@ use super::Result;
 pub struct Memory {
     total: u64,
     free: u64,
+    used: u64,
     buffers: u64,
     cached: u64,
     swap_total: u64,
     swap_free: u64,
+    swap_used: u64,
 }
 
 const MEMORY_NUMBER_OF_FIELDS: usize = 6;
@@ -18,16 +20,13 @@ impl Memory {
         self.total
     }
 
-    /// Total amount of free physical memory in Kb.
-    /// Inclused buffers and caches, these will be freed
-    /// up by the OS when the memory is needed.
     pub fn free(&self) -> u64 {
-        self.free + self.buffers + self.cached
+        self.free
     }
 
     /// Total amount of used physical memory in Kb.
     pub fn used(&self) -> u64 {
-        self.total() - self.free()
+        self.used
     }
 
     /// Total amount of swap space in Kb.
@@ -42,7 +41,7 @@ impl Memory {
 
     /// Total amount of used swap space in Kb.
     pub fn swap_used(&self) -> u64 {
-        self.swap_total() - self.swap_free()
+        self.swap_used
     }
 }
 
@@ -75,11 +74,14 @@ mod os {
         let mut memory = Memory {
             total: 0,
             free: 0,
+            used: 0,
             buffers: 0,
             cached: 0,
             swap_total: 0,
             swap_free: 0,
+            swap_used: 0,
         };
+        let mut free = 0;
 
         let reader = try!(file_to_buf_reader(path));
 
@@ -97,7 +99,7 @@ mod os {
                     1
                 },
                 "MemFree:" => {
-                    memory.free = value;
+                    free = value;
                     1
                 },
                 "Buffers:" => {
@@ -128,6 +130,13 @@ mod os {
             return Err(ProbeError::UnexpectedContent("Did not encounter all expected fields".to_owned()))
         }
 
+        // Total amount of free physical memory in Kb.
+        // Inclused buffers and caches, these will be freed
+        // up by the OS when the memory is needed.
+        memory.free = free + memory.buffers + memory.cached;
+        memory.used = memory.total - memory.free;
+        memory.swap_used = memory.swap_total - memory.swap_free;
+
         Ok(memory)
     }
 
@@ -135,10 +144,12 @@ mod os {
         let mut memory = Memory {
             total: 0,
             free: 0,
+            used: 0,
             buffers: 0,
             cached: 0,
             swap_total: 0,
             swap_free: 0,
+            swap_used: 0,
         };
 
         let reader = try!(file_to_buf_reader(&path.join("memory.stat")));
@@ -149,7 +160,6 @@ mod os {
             Ok(value) => memory.swap_total = bytes_to_kilo_bytes(value),
             Err(_) => ()
         }
-        let mut cache = 0;
         let mut swap_used: Option<u64> = None;
 
         for line in reader.lines() {
@@ -161,14 +171,19 @@ mod os {
                 // TODO: or this one for memory total? /sys/fs/cgroup/memory/memory.limit_in_bytes
                 "hierarchical_memory_limit" => memory.total = bytes_to_kilo_bytes(value),
                 "swap" => swap_used = Some(bytes_to_kilo_bytes(value)),
-                "cache" => memory.cached = bytes_to_kilo_bytes(cache),
+                "cache" => memory.cached = bytes_to_kilo_bytes(value),
                 _ => ()
             };
         }
 
-        memory.free = memory.total - used_memory;
+        println!("used: {} - {}", used_memory, memory.cached);
+        memory.used = used_memory - memory.cached;
+        memory.free = memory.total - memory.used;
         match swap_used {
-            Some(value) => { memory.swap_free = memory.swap_total - value },
+            Some(value) => {
+                memory.swap_used = value;
+                memory.swap_free = memory.swap_total - value
+            },
             None => ()
         }
 
@@ -192,19 +207,23 @@ mod tests {
     }
 
     #[test]
-    fn test_read_and_parse_memory() {
+    fn test_read_and_parse_proc_memory() {
         let path = Path::new("fixtures/linux/memory/proc_meminfo");
         let memory = super::os::read_and_parse_proc_memory(&path).unwrap();
 
         let expected = Memory {
             total: 376072,
-            free: 125104,
+            free: 324248,
+            used: 51824,
             buffers: 22820,
             cached: 176324,
             swap_total: 1101816,
             swap_free: 1100644,
+            swap_used: 1172,
         };
         assert_eq!(expected, memory);
+        assert_eq!(memory.total, memory.used + memory.free);
+        assert_eq!(memory.swap_total, memory.swap_used + memory.swap_free);
     }
 
     #[test]
@@ -235,51 +254,23 @@ mod tests {
     }
 
     #[test]
-    fn test_memory_calculations() {
-        let memory = Memory {
-            total: 1000,
-            free: 200,
-            buffers: 100,
-            cached: 100,
-            swap_total: 500,
-            swap_free: 100,
-        };
-
-        // Physical memory
-        assert_eq!(1000, memory.total());
-        assert_eq!(400, memory.free());
-        assert_eq!(600, memory.used());
-
-        // Swap space
-        assert_eq!(500, memory.swap_total());
-        assert_eq!(100, memory.swap_free());
-        assert_eq!(400, memory.swap_used());
-    }
-
-    #[test]
     fn test_read_and_parse_sys_memory() {
         let path = Path::new("fixtures/linux/sys/fs/cgroup/memory/");
         let memory = super::os::read_and_parse_sys_memory(&path).unwrap();
 
         let expected = Memory {
             total: 512000, // 500mb
-            free: 444472, // total - used
+            free: 503400, // total - used
+            used: 8600,
             buffers: 0,
-            cached: 0,
+            cached: 58928,
             swap_total: 2000,
             swap_free: 1500,
+            swap_used: 500,
         };
         assert_eq!(expected, memory);
-
-        // Physical memory
-        assert_eq!(512000, memory.total());
-        assert_eq!(444472, memory.free());
-        assert_eq!(67528, memory.used());
-
-        // Swap space
-        assert_eq!(2000, memory.swap_total());
-        assert_eq!(1500, memory.swap_free());
-        assert_eq!(500, memory.swap_used());
+        assert_eq!(memory.total, memory.used + memory.free);
+        assert_eq!(memory.swap_total, memory.swap_used + memory.swap_free);
     }
 
     #[test]
@@ -315,23 +306,17 @@ mod tests {
         let memory = super::os::read_and_parse_sys_memory(&path).unwrap();
 
         let expected = Memory {
-            total: 512000,
-            free: 444472,
+            total: 512000, // 500mb
+            free: 503400, // total - used
+            used: 8600,
             buffers: 0,
-            cached: 0,
+            cached: 58928,
             swap_total: 0, // Reads 0 swap
             swap_free: 0,  // Reads 0 swap
+            swap_used: 0,
         };
         assert_eq!(expected, memory);
-
-        // Physical memory
-        assert_eq!(512000, memory.total());
-        assert_eq!(444472, memory.free());
-        assert_eq!(67528, memory.used());
-
-        // Swap space
-        assert_eq!(0, memory.swap_total());
-        assert_eq!(0, memory.swap_free());
-        assert_eq!(0, memory.swap_used());
+        assert_eq!(memory.total, memory.used + memory.free);
+        assert_eq!(memory.swap_total, memory.swap_used + memory.swap_free);
     }
 }
