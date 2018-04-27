@@ -176,7 +176,6 @@ mod os {
             };
         }
 
-        println!("used: {} - {}", used_memory, memory.cached);
         memory.used = used_memory - memory.cached;
         memory.free = memory.total - memory.used;
         match swap_used {
