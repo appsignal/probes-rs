@@ -155,11 +155,10 @@ mod os {
         memory.total = bytes_to_kilo_bytes(try!(read_file_value_as_u64(&path.join("memory.limit_in_bytes"))));
         let used_memory = bytes_to_kilo_bytes(try!(read_file_value_as_u64(&path.join("memory.usage_in_bytes"))));
         // If swap is not configured for the container, read 0 as value
-        match read_file_value_as_u64(&path.join("memory.memsw.limit_in_bytes")) {
-            Ok(value) => memory.swap_total = bytes_to_kilo_bytes(value),
-            Err(_) => memory.swap_total = 0
-        }
-        let mut swap_used: Option<u64> = None;
+        memory.swap_total = match read_file_value_as_u64(&path.join("memory.memsw.limit_in_bytes")) {
+            Ok(value) => bytes_to_kilo_bytes(value) - memory.total,
+            Err(_) => 0
+        };
 
         let reader = try!(file_to_buf_reader(&path.join("memory.stat")));
         for line in reader.lines() {
@@ -168,7 +167,6 @@ mod os {
             let value = try!(parse_u64(&segments[1]));
 
             match segments[0] {
-                "swap" => swap_used = Some(bytes_to_kilo_bytes(value)),
                 "cache" => memory.cached = bytes_to_kilo_bytes(value),
                 _ => ()
             };
@@ -176,13 +174,12 @@ mod os {
 
         memory.used = used_memory - memory.cached;
         memory.free = memory.total - memory.used;
-        match swap_used {
-            Some(value) => {
-                memory.swap_used = value;
-                memory.swap_free = memory.swap_total - value
-            },
-            None => ()
-        }
+        // If swap is not configured for the container, read 0 as value
+        memory.swap_used = match read_file_value_as_u64(&path.join("memory.memsw.usage_in_bytes")) {
+            Ok(value) => bytes_to_kilo_bytes(value) - memory.used,
+            Err(_) => 0
+        };
+        memory.swap_free = memory.swap_total.checked_sub(memory.swap_used).unwrap_or(0);
 
         Ok(memory)
     }
@@ -268,9 +265,9 @@ mod tests {
             used: 8600,
             buffers: 0,
             cached: 58928,
-            swap_total: 2000,
-            swap_free: 1500,
-            swap_used: 500,
+            swap_total: 1_488_000, // swap total - memory total
+            swap_free: 996_600,
+            swap_used: 491_400, // swap used - memory used
         };
         assert_eq!(expected, memory);
         assert_eq!(memory.total, memory.used + memory.free);
