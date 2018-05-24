@@ -12,7 +12,8 @@ pub struct Memory {
     swap_used: u64,
 }
 
-const MEMORY_NUMBER_OF_FIELDS: usize = 6;
+const PROC_MEMORY_NUMBER_OF_FIELDS: usize = 6;
+const SYS_MEMORY_NUMBER_OF_FIELDS: usize = 1;
 
 impl Memory {
     /// Total amount of physical memory in Kb.
@@ -56,7 +57,7 @@ mod os {
     use std::io::BufRead;
     use std::path::Path;
 
-    use super::{Memory,MEMORY_NUMBER_OF_FIELDS};
+    use super::{Memory,PROC_MEMORY_NUMBER_OF_FIELDS,SYS_MEMORY_NUMBER_OF_FIELDS};
     use super::super::{ProbeError,Result,container};
     use super::super::{file_to_buf_reader,parse_u64};
 
@@ -121,12 +122,12 @@ mod os {
                 _ => 0
             };
 
-            if fields_encountered == MEMORY_NUMBER_OF_FIELDS {
+            if fields_encountered == PROC_MEMORY_NUMBER_OF_FIELDS {
                 break
             }
         }
 
-        if fields_encountered != MEMORY_NUMBER_OF_FIELDS {
+        if fields_encountered != PROC_MEMORY_NUMBER_OF_FIELDS {
             return Err(ProbeError::UnexpectedContent("Did not encounter all expected fields".to_owned()))
         }
 
@@ -160,20 +161,28 @@ mod os {
             Err(_) => 0
         };
 
+        let mut fields_encountered = 0;
         let reader = try!(file_to_buf_reader(&path.join("memory.stat")));
         for line in reader.lines() {
             let line = try!(line);
             let segments: Vec<&str> = line.split_whitespace().collect();
             let value = try!(parse_u64(&segments[1]));
 
-            match segments[0] {
-                "cache" => memory.cached = bytes_to_kilo_bytes(value),
-                _ => ()
+            fields_encountered += match segments[0] {
+                "cache" => {
+                    memory.cached = bytes_to_kilo_bytes(value);
+                    1
+                },
+                _ => 0
             };
-        }
 
+            if fields_encountered == SYS_MEMORY_NUMBER_OF_FIELDS {
+                break
+            }
+        }
         memory.used = used_memory - memory.cached;
         memory.free = memory.total - memory.used;
+
         // If swap is not configured for the container, read 0 as value
         memory.swap_used = match read_file_value_as_u64(&path.join("memory.memsw.usage_in_bytes")) {
             Ok(value) => bytes_to_kilo_bytes(value) - memory.used,
