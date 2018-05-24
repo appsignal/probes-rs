@@ -180,12 +180,12 @@ mod os {
 
         // If swap is not configured for the container, read 0 as value
         memory.swap_total = match read_file_value_as_u64(&path.join("memory.memsw.limit_in_bytes")) {
-            Ok(value) => bytes_to_kilo_bytes(value) - memory.total,
+            Ok(value) => bytes_to_kilo_bytes(value).checked_sub(memory.total).unwrap_or(0),
             Err(_) => 0
         };
         // If swap is not configured for the container, read 0 as value
         memory.swap_used = match read_file_value_as_u64(&path.join("memory.memsw.usage_in_bytes")) {
-            Ok(value) => bytes_to_kilo_bytes(value) - used_memory,
+            Ok(value) => bytes_to_kilo_bytes(value).checked_sub(used_memory).unwrap_or(0),
             Err(_) => 0
         };
         memory.swap_free = memory.swap_total.checked_sub(memory.swap_used).unwrap_or(0);
