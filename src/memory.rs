@@ -155,11 +155,6 @@ mod os {
 
         memory.total = bytes_to_kilo_bytes(try!(read_file_value_as_u64(&path.join("memory.limit_in_bytes"))));
         let used_memory = bytes_to_kilo_bytes(try!(read_file_value_as_u64(&path.join("memory.usage_in_bytes"))));
-        // If swap is not configured for the container, read 0 as value
-        memory.swap_total = match read_file_value_as_u64(&path.join("memory.memsw.limit_in_bytes")) {
-            Ok(value) => bytes_to_kilo_bytes(value) - memory.total,
-            Err(_) => 0
-        };
 
         let mut fields_encountered = 0;
         let reader = try!(file_to_buf_reader(&path.join("memory.stat")));
@@ -184,8 +179,13 @@ mod os {
         memory.free = memory.total - memory.used;
 
         // If swap is not configured for the container, read 0 as value
+        memory.swap_total = match read_file_value_as_u64(&path.join("memory.memsw.limit_in_bytes")) {
+            Ok(value) => bytes_to_kilo_bytes(value) - memory.total,
+            Err(_) => 0
+        };
+        // If swap is not configured for the container, read 0 as value
         memory.swap_used = match read_file_value_as_u64(&path.join("memory.memsw.usage_in_bytes")) {
-            Ok(value) => bytes_to_kilo_bytes(value) - memory.used,
+            Ok(value) => bytes_to_kilo_bytes(value) - used_memory,
             Err(_) => 0
         };
         memory.swap_free = memory.swap_total.checked_sub(memory.swap_used).unwrap_or(0);
@@ -274,9 +274,9 @@ mod tests {
             used: 8600,
             buffers: 0,
             cached: 58928,
-            swap_total: 1_488_000, // swap total - memory total
-            swap_free: 996_600,
-            swap_used: 491_400, // swap used - memory used
+            swap_total: 1_488_000, // reported swap total - reported memory total
+            swap_free: 1_055_528,
+            swap_used: 432_472, // reported swap used - (reported memory used, including cache)
         };
         assert_eq!(expected, memory);
         assert_eq!(memory.total, memory.used + memory.free);
