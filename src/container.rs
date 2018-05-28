@@ -8,7 +8,10 @@ pub fn in_container() -> bool {
 
 fn determine_container_for_cgroups(path: &str) -> bool {
     match file_to_string(&Path::new(&path)) {
-        Ok(buffer) => buffer.contains("/docker") || buffer.contains("/lxc"),
+        Ok(buffer) => {
+            buffer.contains("/docker") || buffer.contains("/lxc") ||
+                buffer.contains("/kubepods")
+        },
         Err(_) => false
     }
 }
@@ -20,6 +23,7 @@ mod tests {
         assert!(super::determine_container_for_cgroups("fixtures/linux/proc/self/cgroup/docker"));
         assert!(super::determine_container_for_cgroups("fixtures/linux/proc/self/cgroup/docker_systemd"));
         assert!(super::determine_container_for_cgroups("fixtures/linux/proc/self/cgroup/lxc"));
+        assert!(super::determine_container_for_cgroups("fixtures/linux/proc/self/cgroup/kubernetes"));
         assert!(!super::determine_container_for_cgroups("fixtures/linux/proc/self/cgroup/none"));
     }
 }
