@@ -52,21 +52,33 @@ pub fn read() -> Result<Memory> {
     os::read()
 }
 
+/// Read the current memory status of the container.
+#[cfg(target_os = "linux")]
+pub fn read_from_container() -> Result<Memory> {
+    os::read_from_container()
+}
+
 #[cfg(target_os = "linux")]
 mod os {
     use std::io::BufRead;
     use std::path::Path;
 
     use super::{Memory,PROC_MEMORY_NUMBER_OF_FIELDS,SYS_MEMORY_NUMBER_OF_FIELDS};
-    use super::super::{ProbeError,Result,container};
-    use super::super::{file_to_buf_reader,parse_u64};
+    use super::super::{ProbeError,Result};
+    use super::super::{file_to_buf_reader,parse_u64,dir_exists};
 
     #[inline]
     pub fn read() -> Result<Memory> {
-        if container::in_container() {
-            read_and_parse_sys_memory(&Path::new("/sys/fs/cgroup/memory/"))
+        read_and_parse_proc_memory(&Path::new("/proc/memory.stat"))
+    }
+
+    pub fn read_from_container() -> Result<Memory> {
+        let sys_fs_dir = Path::new("/sys/fs/cgroup/memory/");
+        if dir_exists(sys_fs_dir) {
+            read_and_parse_sys_memory(&sys_fs_dir)
         } else {
-            read_and_parse_proc_memory(&Path::new("/proc/memory.stat"))
+            let message = format!("Directory `{}` not found", sys_fs_dir.to_str().unwrap_or("unknown path"));
+            Err(ProbeError::UnexpectedContent(message))
         }
     }
 
@@ -214,6 +226,11 @@ mod tests {
     #[test]
     fn test_read_memory() {
         assert!(super::read().is_ok());
+    }
+
+    #[test]
+    fn test_read_from_container() {
+        assert!(super::read_from_container().is_ok());
     }
 
     #[test]
