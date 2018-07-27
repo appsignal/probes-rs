@@ -58,13 +58,14 @@ mod os {
     use std::path::Path;
 
     use super::{Memory,PROC_MEMORY_NUMBER_OF_FIELDS,SYS_MEMORY_NUMBER_OF_FIELDS};
-    use super::super::{ProbeError,Result,container};
-    use super::super::{file_to_buf_reader,parse_u64};
+    use super::super::{ProbeError,Result};
+    use super::super::{file_to_buf_reader,parse_u64,dir_exists};
 
     #[inline]
     pub fn read() -> Result<Memory> {
-        if container::in_container() {
-            read_and_parse_sys_memory(&Path::new("/sys/fs/cgroup/memory/"))
+        let sys_fs_dir = Path::new("/sys/fs/cgroup/memory/");
+        if dir_exists(sys_fs_dir) {
+            read_and_parse_sys_memory(&sys_fs_dir)
         } else {
             read_and_parse_proc_memory(&Path::new("/proc/memory.stat"))
         }
