@@ -69,7 +69,7 @@ mod os {
 
     #[inline]
     pub fn read() -> Result<Memory> {
-        read_and_parse_proc_memory(&Path::new("/proc/memory.stat"))
+        read_and_parse_proc_memory(&Path::new("/proc/meminfo"))
     }
 
     pub fn read_from_container() -> Result<Memory> {
