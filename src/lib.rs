@@ -2,7 +2,6 @@ extern crate libc;
 extern crate time;
 
 mod error;
-pub mod container;
 pub mod cpu;
 pub mod disk_stats;
 pub mod disk_usage;
@@ -57,6 +56,11 @@ fn parse_u64(segment: &str) -> Result<u64> {
     segment.parse().map_err(|_| {
         ProbeError::UnexpectedContent(format!("Could not parse '{}' as u64", segment).to_owned())
     })
+}
+
+#[inline]
+fn dir_exists(path: &Path) -> bool {
+    path.exists() && path.is_dir()
 }
 
 #[cfg(test)]
