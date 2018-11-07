@@ -26,7 +26,11 @@ mod os {
 
     #[inline]
     pub fn read() -> Result<DiskUsages> {
-        let output = try!(Command::new("df").arg("-l").output()).stdout;
+        let output = Command::new("df")
+            .arg("-l")
+            .output()
+            .map_err(|e| ProbeError::IO(e, "df -l".to_owned()))?
+            .stdout;
         let output_string = String::from_utf8_lossy(&output);
 
         parse_df_output(output_string.as_ref())
@@ -57,10 +61,10 @@ mod os {
 
                 let disk = DiskUsage {
                     filesystem: filesystem,
-                    one_k_blocks: try!(parse_u64(segments[1])),
-                    one_k_blocks_used: try!(parse_u64(segments[2])),
-                    one_k_blocks_free: try!(parse_u64(segments[3])),
-                    used_percentage: try!(parse_percentage_segment(&segments[4])),
+                    one_k_blocks: parse_u64(segments[1])?,
+                    one_k_blocks_used: parse_u64(segments[2])?,
+                    one_k_blocks_free: parse_u64(segments[3])?,
+                    used_percentage: parse_percentage_segment(&segments[4])?,
                     mountpoint: segments[5].to_string()
                 };
 
@@ -78,10 +82,10 @@ mod os {
 
                         let disk = DiskUsage {
                             filesystem: filesystem,
-                            one_k_blocks: try!(parse_u64(segments[0])),
-                            one_k_blocks_used: try!(parse_u64(segments[1])),
-                            one_k_blocks_free: try!(parse_u64(segments[2])),
-                            used_percentage: try!(parse_percentage_segment(&segments[3])),
+                            one_k_blocks: parse_u64(segments[0])?,
+                            one_k_blocks_used: parse_u64(segments[1])?,
+                            one_k_blocks_free: parse_u64(segments[2])?,
+                            used_percentage: parse_percentage_segment(&segments[3])?,
                             mountpoint: segments[4].to_string()
                         };
 

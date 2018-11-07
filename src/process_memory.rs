@@ -43,16 +43,16 @@ mod os {
 
     #[inline]
     pub fn read_and_get_current_rss(path: &Path) -> Result<u64> {
-        let raw_data = try!(file_to_string(path));
+        let raw_data = file_to_string(path)?;
         let segments: Vec<&str> = raw_data.split_whitespace().collect();
 
         if segments.len() < 2 {
             return Err(ProbeError::UnexpectedContent("Incorrect number of segments".to_owned()))
         }
 
-        let pages: u64 = try!(segments[1].parse().map_err(|_| {
+        let pages: u64 = segments[1].parse().map_err(|_| {
             ProbeError::UnexpectedContent("Could not parse segment".to_owned())
-        }));
+        })?;
 
         // Value is in pages, needs to be multiplied by the page size to get a value in KB. We ask the OS
         // for this information using sysconf.
@@ -94,7 +94,7 @@ mod tests {
     fn test_read_and_get_current_rss_wrong_path() {
         let path = Path::new("/nonsense");
         match super::os::read_and_get_current_rss(&path) {
-            Err(ProbeError::IO(_)) => (),
+            Err(ProbeError::IO(_, _)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
     }

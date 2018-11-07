@@ -15,7 +15,7 @@ impl NetworkTrafficMeasurement {
     /// future. It is advisable to make the next measurement roughly a minute from this one for the
     /// most reliable result.
     pub fn calculate_per_minute(&self, next_measurement: &NetworkTrafficMeasurement) -> Result<NetworkTrafficPerMinute> {
-        let time_difference = try!(calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns));
+        let time_difference = calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns)?;
 
         let mut interfaces = Interfaces::new();
 
@@ -27,8 +27,8 @@ impl NetworkTrafficMeasurement {
             interfaces.insert(
                 name.to_string(),
                 NetworkTraffic {
-                    received: try!(super::time_adjusted("received", next_traffic.received, traffic.received, time_difference)),
-                    transmitted: try!(super::time_adjusted("transmitted", next_traffic.transmitted, traffic.transmitted, time_difference))
+                    received: super::time_adjusted("received", next_traffic.received, traffic.received, time_difference)?,
+                    transmitted: super::time_adjusted("transmitted", next_traffic.transmitted, traffic.transmitted, time_difference)?
                 }
             );
         }
@@ -59,12 +59,12 @@ pub fn read() -> Result<NetworkTrafficMeasurement> {
 
 #[cfg(target_os = "linux")]
 mod os {
-    use std::io::BufRead;
+    use std::io::{self,BufRead};
     use std::path::Path;
     use time;
 
     use super::{NetworkTraffic,Interfaces,NetworkTrafficMeasurement};
-    use super::super::{Result,file_to_buf_reader,parse_u64};
+    use super::super::{Result,file_to_buf_reader,parse_u64,path_to_string};
     use error::ProbeError;
 
     #[inline]
@@ -74,11 +74,14 @@ mod os {
 
     #[inline]
     pub fn read_and_parse_network(path: &Path) -> Result<NetworkTrafficMeasurement> {
-        let reader = try!(file_to_buf_reader(path));
+        let reader = file_to_buf_reader(path)?;
         let precise_time_ns = time::precise_time_ns();
 
-        let lines: Vec<String> = try!(reader.lines().collect());
-        let positions = try!(get_positions(lines[1].as_ref()));
+        let line_result: io::Result<Vec<String>> = reader
+            .lines()
+            .collect();
+        let lines = line_result.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
+        let positions = get_positions(lines[1].as_ref())?;
 
         let mut interfaces = Interfaces::new();
         for line in &lines[2..] {
@@ -97,8 +100,8 @@ mod os {
             }
 
             let traffic = NetworkTraffic {
-                received: try!(parse_u64(segments[positions.receive_bytes])),
-                transmitted: try!(parse_u64(segments[positions.transmit_bytes]))
+                received: parse_u64(segments[positions.receive_bytes])?,
+                transmitted: parse_u64(segments[positions.transmit_bytes])?
             };
 
             interfaces.insert(name, traffic);
@@ -126,8 +129,8 @@ mod os {
         let receive_group: Vec<&str> = groups[1].split_whitespace().collect();
         let transmit_group: Vec<&str> = groups[2].split_whitespace().collect();
 
-        let receive_pos = try!(receive_group.iter().position(|&e| e == "bytes").ok_or(ProbeError::UnexpectedContent("bytes field not found for receive".to_string())));
-        let transmit_pos = try!(transmit_group.iter().position(|&e| e == "bytes").ok_or(ProbeError::UnexpectedContent("bytes field not found for transmit".to_string())));
+        let receive_pos = receive_group.iter().position(|&e| e == "bytes").ok_or(ProbeError::UnexpectedContent("bytes field not found for receive".to_string()))?;
+        let transmit_pos = transmit_group.iter().position(|&e| e == "bytes").ok_or(ProbeError::UnexpectedContent("bytes field not found for transmit".to_string()))?;
 
         // We start with 1 here because the first (name) segment always has one column.
         Ok(Positions {
@@ -176,7 +179,7 @@ mod tests {
     fn test_read_and_parse_network_wrong_path() {
         let path = Path::new("/nonsense");
         match super::os::read_and_parse_network(&path) {
-            Err(ProbeError::IO(_)) => (),
+            Err(ProbeError::IO(_, _)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
     }

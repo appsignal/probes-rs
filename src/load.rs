@@ -29,7 +29,7 @@ mod os {
 
     #[inline]
     pub fn read_and_parse_load_average(path: &Path) -> Result<LoadAverage> {
-        let raw_data = try!(file_to_string(path));
+        let raw_data = file_to_string(path)?;
         let segments: Vec<&str> = raw_data.split_whitespace().collect();
 
         if segments.len() < 3 {
@@ -37,9 +37,9 @@ mod os {
         }
 
         Ok(LoadAverage {
-            one:     try!(parse_segment(segments[0])),
-            five:    try!(parse_segment(segments[1])),
-            fifteen: try!(parse_segment(segments[2]))
+            one:     parse_segment(segments[0])?,
+            five:    parse_segment(segments[1])?,
+            fifteen: parse_segment(segments[2])?
         })
     }
 
@@ -80,7 +80,7 @@ mod tests {
     fn test_read_and_parse_load_average_wrong_path() {
         let path = Path::new("/nonsense");
         match super::os::read_and_parse_load_average(&path) {
-            Err(ProbeError::IO(_)) => (),
+            Err(ProbeError::IO(_, _)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
     }

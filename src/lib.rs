@@ -21,16 +21,26 @@ pub use error::ProbeError;
 pub type Result<T> = result::Result<T, error::ProbeError>;
 
 #[inline]
-fn file_to_string(path: &Path) -> io::Result<String> {
-    let mut file = try!(fs::File::open(path));
+fn file_to_string(path: &Path) -> Result<String> {
+    let mut file = fs::File::open(path)
+        .map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
     let mut read = String::new();
-    try!(file.read_to_string(&mut read));
+    file
+        .read_to_string(&mut read)
+        .map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
     Ok(read)
 }
 
 #[inline]
-fn file_to_buf_reader(path: &Path) -> io::Result<io::BufReader<fs::File>> {
-    fs::File::open(path).and_then(|f| Ok(io::BufReader::new(f)))
+fn file_to_buf_reader(path: &Path) -> Result<io::BufReader<fs::File>> {
+    fs::File::open(path)
+        .map_err(|e| ProbeError::IO(e, path_to_string(path)))
+        .and_then(|f| Ok(io::BufReader::new(f)))
+}
+
+#[inline]
+fn path_to_string(path: &Path) -> String {
+    path.to_string_lossy().to_string()
 }
 
 #[inline]

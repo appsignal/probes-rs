@@ -64,7 +64,7 @@ mod os {
     use std::path::Path;
 
     use super::{Memory,PROC_MEMORY_NUMBER_OF_FIELDS,SYS_MEMORY_NUMBER_OF_FIELDS};
-    use super::super::{ProbeError,Result};
+    use super::super::{ProbeError,Result,path_to_string};
     use super::super::{file_to_buf_reader,parse_u64,dir_exists};
 
     #[inline]
@@ -96,13 +96,13 @@ mod os {
         };
         let mut free = 0;
 
-        let reader = try!(file_to_buf_reader(path));
+        let reader = file_to_buf_reader(path)?;
 
         let mut fields_encountered = 0;
-        for line in reader.lines() {
-            let line = try!(line);
+        for line_result in reader.lines() {
+            let line = line_result.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
             let segments: Vec<&str> = line.split_whitespace().collect();
-            let value: u64 = try!(parse_u64(segments[1]));
+            let value: u64 = parse_u64(segments[1])?;
 
             // If this is a field we recognize set it's value and increment the
             // number of fields we encountered.
@@ -165,15 +165,15 @@ mod os {
             swap_used: 0,
         };
 
-        memory.total = bytes_to_kilo_bytes(try!(read_file_value_as_u64(&path.join("memory.limit_in_bytes"))));
-        let used_memory = bytes_to_kilo_bytes(try!(read_file_value_as_u64(&path.join("memory.usage_in_bytes"))));
+        memory.total = bytes_to_kilo_bytes(read_file_value_as_u64(&path.join("memory.limit_in_bytes"))?);
+        let used_memory = bytes_to_kilo_bytes(read_file_value_as_u64(&path.join("memory.usage_in_bytes"))?);
 
         let mut fields_encountered = 0;
-        let reader = try!(file_to_buf_reader(&path.join("memory.stat")));
-        for line in reader.lines() {
-            let line = try!(line);
+        let reader = file_to_buf_reader(&path.join("memory.stat"))?;
+        for line_result in reader.lines() {
+            let line = line_result.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
             let segments: Vec<&str> = line.split_whitespace().collect();
-            let value = try!(parse_u64(&segments[1]));
+            let value = parse_u64(&segments[1])?;
 
             fields_encountered += match segments[0] {
                 "cache" => {
@@ -206,9 +206,10 @@ mod os {
     }
 
     fn read_file_value_as_u64(path: &Path) -> Result<u64> {
-        let mut reader = try!(file_to_buf_reader(path));
+        let mut reader = file_to_buf_reader(path)?;
         let mut line = String::new();
-        try!(reader.read_line(&mut line));
+        reader.read_line(&mut line)
+            .map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
         parse_u64(&line.trim())
     }
 
@@ -257,7 +258,7 @@ mod tests {
     fn test_read_and_parse_memory_wrong_path() {
         let path = Path::new("/nonsense");
         match super::os::read_and_parse_proc_memory(&path) {
-            Err(ProbeError::IO(_)) => (),
+            Err(ProbeError::IO(_, _)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
     }
@@ -304,7 +305,7 @@ mod tests {
     fn test_read_and_parse_sys_memory_wrong_path() {
         let path = Path::new("/nonsense");
         match super::os::read_and_parse_sys_memory(&path) {
-            Err(ProbeError::IO(_)) => (),
+            Err(ProbeError::IO(_, _)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
     }
@@ -322,7 +323,7 @@ mod tests {
     fn test_read_and_parse_sys_memory_missing_files() {
         let path = Path::new("fixtures/linux/sys/fs/cgroup/memory_missing_files/");
         match super::os::read_and_parse_sys_memory(&path) {
-            Err(ProbeError::IO(_)) => (),
+            Err(ProbeError::IO(_, _)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
     }

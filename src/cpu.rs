@@ -13,19 +13,19 @@ impl CpuMeasurement {
     /// It is advisable to make the next measurement roughly a minute from this one for the
     /// most reliable result.
     pub fn calculate_per_minute(&self, next_measurement: &CpuMeasurement) -> Result<CpuStat> {
-        let time_difference = try!(calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns));
+        let time_difference = calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns)?;
 
         Ok(CpuStat {
-            user: try!(super::time_adjusted("user", next_measurement.stat.user, self.stat.user, time_difference)),
-            nice: try!(super::time_adjusted("nice", next_measurement.stat.nice, self.stat.nice, time_difference)),
-            system: try!(super::time_adjusted("system", next_measurement.stat.system, self.stat.system, time_difference)),
-            idle: try!(super::time_adjusted("idle", next_measurement.stat.idle, self.stat.idle, time_difference)),
-            iowait: try!(super::time_adjusted("iowait", next_measurement.stat.iowait, self.stat.iowait, time_difference)),
-            irq: try!(super::time_adjusted("irq", next_measurement.stat.irq, self.stat.irq, time_difference)),
-            softirq: try!(super::time_adjusted("softirq", next_measurement.stat.softirq, self.stat.softirq, time_difference)),
-            steal: try!(super::time_adjusted("steal", next_measurement.stat.steal, self.stat.steal, time_difference)),
-            guest: try!(super::time_adjusted("guest", next_measurement.stat.guest, self.stat.guest, time_difference)),
-            guestnice: try!(super::time_adjusted("guestnice", next_measurement.stat.guestnice, self.stat.guestnice, time_difference))
+            user: super::time_adjusted("user", next_measurement.stat.user, self.stat.user, time_difference)?,
+            nice: super::time_adjusted("nice", next_measurement.stat.nice, self.stat.nice, time_difference)?,
+            system: super::time_adjusted("system", next_measurement.stat.system, self.stat.system, time_difference)?,
+            idle: super::time_adjusted("idle", next_measurement.stat.idle, self.stat.idle, time_difference)?,
+            iowait: super::time_adjusted("iowait", next_measurement.stat.iowait, self.stat.iowait, time_difference)?,
+            irq: super::time_adjusted("irq", next_measurement.stat.irq, self.stat.irq, time_difference)?,
+            softirq: super::time_adjusted("softirq", next_measurement.stat.softirq, self.stat.softirq, time_difference)?,
+            steal: super::time_adjusted("steal", next_measurement.stat.steal, self.stat.steal, time_difference)?,
+            guest: super::time_adjusted("guest", next_measurement.stat.guest, self.stat.guest, time_difference)?,
+            guestnice: super::time_adjusted("guestnice", next_measurement.stat.guestnice, self.stat.guestnice, time_difference)?
         })
     }
 }
@@ -98,15 +98,15 @@ mod os {
     use std::path::Path;
     use std::io::BufRead;
     use time;
-    use super::super::{Result,file_to_buf_reader,parse_u64};
+    use super::super::{Result,file_to_buf_reader,parse_u64,path_to_string};
     use super::{CpuMeasurement,CpuStat};
     use error::ProbeError;
 
     pub fn read_and_parse_proc_stat(path: &Path) -> Result<CpuMeasurement> {
         let mut line = String::new();
-        let mut reader = try!(file_to_buf_reader(path));
+        let mut reader = file_to_buf_reader(path)?;
         let time = time::precise_time_ns();
-        try!(reader.read_line(&mut line));
+        reader.read_line(&mut line).map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
 
         let stats: Vec<&str> = line
             .split_whitespace()
@@ -118,10 +118,10 @@ mod os {
             return Err(ProbeError::UnexpectedContent("Incorrect number of stats".to_owned()));
         }
 
-        let mut usertime = try!(parse_u64(stats[0]));
-        let mut nicetime = try!(parse_u64(stats[1]));
-        let guest = try!(parse_u64(*stats.get(8).unwrap_or(&"0")));
-        let guestnice = try!(parse_u64(*stats.get(9).unwrap_or(&"0")));
+        let mut usertime = parse_u64(stats[0])?;
+        let mut nicetime = parse_u64(stats[1])?;
+        let guest = parse_u64(*stats.get(8).unwrap_or(&"0"))?;
+        let guestnice = parse_u64(*stats.get(9).unwrap_or(&"0"))?;
         usertime = usertime - guest;
         nicetime = nicetime - guestnice;
 
@@ -130,12 +130,12 @@ mod os {
             stat: CpuStat {
                 user: usertime,
                 nice: nicetime,
-                system: try!(parse_u64(stats[2])),
-                idle: try!(parse_u64(stats[3])),
-                iowait: try!(parse_u64(stats[4])),
-                irq: try!(parse_u64(*stats.get(5).unwrap_or(&"0"))),
-                softirq: try!(parse_u64(*stats.get(6).unwrap_or(&"0"))),
-                steal: try!(parse_u64(*stats.get(7).unwrap_or(&"0"))),
+                system: parse_u64(stats[2])?,
+                idle: parse_u64(stats[3])?,
+                iowait: parse_u64(stats[4])?,
+                irq: parse_u64(*stats.get(5).unwrap_or(&"0"))?,
+                softirq: parse_u64(*stats.get(6).unwrap_or(&"0"))?,
+                steal: parse_u64(*stats.get(7).unwrap_or(&"0"))?,
                 guest: guest,
                 guestnice: guestnice
             }
@@ -183,7 +183,7 @@ mod test {
     #[test]
     fn test_wrong_path() {
         match read_and_parse_proc_stat(&Path::new("bananas")) {
-            Err(ProbeError::IO(_)) => (),
+            Err(ProbeError::IO(_, _)) => (),
             r => panic!("Unexpected result: {:?}", r)
         }
     }
