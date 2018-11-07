@@ -16,7 +16,7 @@ impl DiskStatsMeasurement {
     /// future. It is advisable to make the next measurement roughly a minute from this one for the
     /// most reliable result.
     pub fn calculate_per_minute(&self, next_measurement: &DiskStatsMeasurement) -> Result<DiskStatsPerMinute> {
-        let time_difference = try!(calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns));
+        let time_difference = calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns)?;
 
         let mut stats = HashMap::new();
 
@@ -28,17 +28,17 @@ impl DiskStatsMeasurement {
             stats.insert(
                 name.to_owned(),
                 DiskStat {
-                    reads_completed_successfully: try!(time_adjusted("reads_completed_successfully", next_stat.reads_completed_successfully, stat.reads_completed_successfully, time_difference)),
-                    reads_merged: try!(time_adjusted("reads_merged", next_stat.reads_merged, stat.reads_merged, time_difference)),
-                    sectors_read: try!(time_adjusted("sectors_read", next_stat.sectors_read, stat.sectors_read, time_difference)),
-                    time_spent_reading_ms: try!(time_adjusted("time_spent_reading_ms", next_stat.time_spent_reading_ms, stat.time_spent_reading_ms, time_difference)),
-                    writes_completed: try!(time_adjusted("writes_completed", next_stat.writes_completed, stat.writes_completed, time_difference)),
-                    writes_merged: try!(time_adjusted("writes_merged", next_stat.writes_merged, stat.writes_merged, time_difference)),
-                    sectors_written: try!(time_adjusted("sectors_written", next_stat.sectors_written, stat.sectors_written, time_difference)),
-                    time_spent_writing_ms: try!(time_adjusted("time_spent_writing_ms", next_stat.time_spent_writing_ms, stat.time_spent_writing_ms, time_difference)),
-                    ios_currently_in_progress: try!(time_adjusted("ios_currently_in_progress", next_stat.ios_currently_in_progress, stat.ios_currently_in_progress, time_difference)),
-                    time_spent_doing_ios_ms: try!(time_adjusted("time_spent_doing_ios_ms", next_stat.time_spent_doing_ios_ms, stat.time_spent_doing_ios_ms, time_difference)),
-                    weighted_time_spent_doing_ios_ms: try!(time_adjusted("weighted_time_spent_doing_ios_ms", next_stat.weighted_time_spent_doing_ios_ms, stat.weighted_time_spent_doing_ios_ms, time_difference))
+                    reads_completed_successfully: time_adjusted("reads_completed_successfully", next_stat.reads_completed_successfully, stat.reads_completed_successfully, time_difference)?,
+                    reads_merged: time_adjusted("reads_merged", next_stat.reads_merged, stat.reads_merged, time_difference)?,
+                    sectors_read: time_adjusted("sectors_read", next_stat.sectors_read, stat.sectors_read, time_difference)?,
+                    time_spent_reading_ms: time_adjusted("time_spent_reading_ms", next_stat.time_spent_reading_ms, stat.time_spent_reading_ms, time_difference)?,
+                    writes_completed: time_adjusted("writes_completed", next_stat.writes_completed, stat.writes_completed, time_difference)?,
+                    writes_merged: time_adjusted("writes_merged", next_stat.writes_merged, stat.writes_merged, time_difference)?,
+                    sectors_written: time_adjusted("sectors_written", next_stat.sectors_written, stat.sectors_written, time_difference)?,
+                    time_spent_writing_ms: time_adjusted("time_spent_writing_ms", next_stat.time_spent_writing_ms, stat.time_spent_writing_ms, time_difference)?,
+                    ios_currently_in_progress: time_adjusted("ios_currently_in_progress", next_stat.ios_currently_in_progress, stat.ios_currently_in_progress, time_difference)?,
+                    time_spent_doing_ios_ms: time_adjusted("time_spent_doing_ios_ms", next_stat.time_spent_doing_ios_ms, stat.time_spent_doing_ios_ms, time_difference)?,
+                    weighted_time_spent_doing_ios_ms: time_adjusted("weighted_time_spent_doing_ios_ms", next_stat.weighted_time_spent_doing_ios_ms, stat.weighted_time_spent_doing_ios_ms, time_difference)?
                 }
             );
         }
@@ -91,11 +91,11 @@ mod os {
     use std::collections::HashMap;
     use time;
     use super::{DiskStatsMeasurement,DiskStat};
-    use super::super::{file_to_buf_reader,parse_u64,Result,ProbeError};
+    use super::super::{file_to_buf_reader,parse_u64,Result,ProbeError,path_to_string};
 
     #[inline]
     pub fn read_and_parse_proc_diskstats(path: &Path) -> Result<DiskStatsMeasurement> {
-        let reader = try!(file_to_buf_reader(path));
+        let reader = file_to_buf_reader(path)?;
 
         let mut out = DiskStatsMeasurement {
             precise_time_ns: time::precise_time_ns(),
@@ -103,7 +103,7 @@ mod os {
         };
 
         for line_result in reader.lines() {
-            let line = try!(line_result);
+            let line = line_result.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
             let segments: Vec<&str> = line.split_whitespace().collect();
 
             if segments.len() != 14 {
@@ -111,17 +111,17 @@ mod os {
             }
 
             let disk_stat = DiskStat {
-                reads_completed_successfully: try!(parse_u64(segments[3])),
-                reads_merged: try!(parse_u64(segments[4])),
-                sectors_read: try!(parse_u64(segments[5])),
-                time_spent_reading_ms: try!(parse_u64(segments[6])),
-                writes_completed: try!(parse_u64(segments[7])),
-                writes_merged: try!(parse_u64(segments[8])),
-                sectors_written: try!(parse_u64(segments[9])),
-                time_spent_writing_ms: try!(parse_u64(segments[10])),
-                ios_currently_in_progress: try!(parse_u64(segments[11])),
-                time_spent_doing_ios_ms: try!(parse_u64(segments[12])),
-                weighted_time_spent_doing_ios_ms: try!(parse_u64(segments[13]))
+                reads_completed_successfully: parse_u64(segments[3])?,
+                reads_merged: parse_u64(segments[4])?,
+                sectors_read: parse_u64(segments[5])?,
+                time_spent_reading_ms: parse_u64(segments[6])?,
+                writes_completed: parse_u64(segments[7])?,
+                writes_merged: parse_u64(segments[8])?,
+                sectors_written: parse_u64(segments[9])?,
+                time_spent_writing_ms: parse_u64(segments[10])?,
+                ios_currently_in_progress: parse_u64(segments[11])?,
+                time_spent_doing_ios_ms: parse_u64(segments[12])?,
+                weighted_time_spent_doing_ios_ms: parse_u64(segments[13])?
             };
             out.stats.insert(segments[2].to_owned(), disk_stat);
         }

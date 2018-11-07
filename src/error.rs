@@ -4,21 +4,19 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum ProbeError {
-    IO(io::Error),
+    /// IO error when opening file or command described in
+    /// second field of the error
+    IO(io::Error, String),
+    /// Unexpected content in file or output
     UnexpectedContent(String),
+    /// Input into a calculation function is invalid
     InvalidInput(String)
-}
-
-impl From<io::Error> for ProbeError {
-    fn from(error: io::Error) -> ProbeError {
-        ProbeError::IO(error)
-    }
 }
 
 impl fmt::Display for ProbeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ProbeError::IO(ref err) => write!(f, "{}", err),
+            ProbeError::IO(ref err, ref path) => write!(f, "{} for {}", err, path),
             ProbeError::UnexpectedContent(ref err) => write!(f, "{}", err),
             ProbeError::InvalidInput(ref err) => write!(f, "{}", err)
         }
@@ -28,7 +26,7 @@ impl fmt::Display for ProbeError {
 impl error::Error for ProbeError {
     fn description(&self) -> &str {
         match *self {
-            ProbeError::IO(ref err) => err.description(),
+            ProbeError::IO(ref err, ref _path) => err.description(),
             ProbeError::UnexpectedContent(ref err) => err,
             ProbeError::InvalidInput(ref err) => err
         }
@@ -36,7 +34,7 @@ impl error::Error for ProbeError {
 
     fn cause(&self) -> Option<&error::Error> {
         match *self {
-            ProbeError::IO(ref err) => Some(err),
+            ProbeError::IO(ref err, ref _path) => Some(err),
             ProbeError::UnexpectedContent(_) => None,
             ProbeError::InvalidInput(_) => None
         }
