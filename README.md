@@ -21,9 +21,15 @@ Currently only supports Linux.
 
 * memory (total, resident, virtual)
 
-# Contributing
+## Contributing
 
-Pull requests welcome!
+Thinking of contributing to our Probes package? Awesome! 🚀
+
+Please follow our [Contributing guide][contributing-guide] in our
+documentation and follow our [Code of Conduct][coc].
+
+Also, we would be very happy to send you Stroopwafles. Have look at everyone
+we send a package to so far on our [Stroopwafles page][waffles-page].
 
 ## Setup
 
@@ -36,3 +42,7 @@ Pull requests welcome!
 
 The tests on Travis are only run directly on that VM. Make sure to run
 the full test suite manually before every release.
+
+[contributing-guide]: http://docs.appsignal.com/appsignal/contributing.html
+[coc]: https://docs.appsignal.com/appsignal/code-of-conduct.html
+[waffles-page]: https://appsignal.com/waffles
