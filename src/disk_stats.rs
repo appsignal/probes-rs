@@ -189,9 +189,14 @@ mod os {
         };
 
         let mut fields_encountered = 0;
+        let mut segment_count = 0;
         for line_result in reader.lines() {
             let line = line_result.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
             let segments: Vec<&str> = line.split_whitespace().collect();
+            segment_count = segments.len();
+            if segments.len() < 3 {
+                continue
+            }
             let value = parse_u64(&segments[2])?;
             fields_encountered += match segments[1] {
                 "Read" => {
@@ -208,6 +213,9 @@ mod os {
             if fields_encountered == DISK_STATS_SYS_NUMBER_OF_FIELDS {
                 break
             }
+        }
+        if fields_encountered != DISK_STATS_SYS_NUMBER_OF_FIELDS && segment_count < 3 {
+            return Err(ProbeError::UnexpectedContent("Incorrect number of segments".to_owned()))
         }
         let mut stats = HashMap::new();
         stats.insert("container".to_owned(), DiskStat::Sys(disk_stat));
@@ -413,7 +421,7 @@ mod tests {
         pub fn get_proc_disk_stat(value: &DiskStat) -> &ProcDiskStat {
             match value {
                 DiskStat::Proc(s) => s,
-                s => panic!("Not a ProcDiskStat: {:?}", value)
+                s => panic!("Not a ProcDiskStat: {:?}", s)
             }
         }
 
