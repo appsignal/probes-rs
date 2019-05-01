@@ -1,7 +1,5 @@
 use super::{Result,calculate_time_difference};
 
-const CPU_SYS_NUMBER_OF_FIELDS: usize = 2;
-
 /// Measurement of cpu stats at a certain time
 #[derive(Debug,PartialEq)]
 pub struct CpuMeasurement {
@@ -103,8 +101,10 @@ mod os {
     use std::io::BufRead;
     use time;
     use super::super::{Result,file_to_buf_reader,parse_u64,path_to_string,read_file_value_as_u64,dir_exists};
-    use super::{CpuMeasurement,CpuStat,CPU_SYS_NUMBER_OF_FIELDS};
+    use super::{CpuMeasurement,CpuStat};
     use error::ProbeError;
+
+    const CPU_SYS_NUMBER_OF_FIELDS: usize = 2;
 
     #[inline]
     pub fn read() -> Result<CpuMeasurement> {
