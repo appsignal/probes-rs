@@ -106,7 +106,8 @@ mod os {
             let line = line_result.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
             let segments: Vec<&str> = line.split_whitespace().collect();
 
-            if segments.len() != 14 {
+            // /proc/disktats has 14 fields, or 18 fields for kernel 4.18+
+            if segments.len() != 14 && segments.len() != 18 {
                 return Err(ProbeError::UnexpectedContent("Incorrect number of segments".to_owned()))
             }
 
@@ -146,6 +147,45 @@ mod tests {
     #[test]
     fn test_read_and_parse_proc_diskstats() {
         let measurement = read_and_parse_proc_diskstats(&Path::new("fixtures/linux/disk_stats/proc_diskstats")).unwrap();
+
+        assert!(measurement.precise_time_ns > 0);
+
+        assert_eq!(2, measurement.stats.len());
+
+        let sda = measurement.stats.get("sda").unwrap();
+        assert_eq!(6185, sda.reads_completed_successfully);
+        assert_eq!(9367, sda.reads_merged);
+        assert_eq!(403272, sda.sectors_read);
+        assert_eq!(206475264, sda.bytes_read());
+        assert_eq!(22160, sda.time_spent_reading_ms);
+        assert_eq!(2591, sda.writes_completed);
+        assert_eq!(8251, sda.writes_merged);
+        assert_eq!(84452, sda.sectors_written);
+        assert_eq!(43239424, sda.bytes_written());
+        assert_eq!(2860, sda.time_spent_writing_ms);
+        assert_eq!(0, sda.ios_currently_in_progress);
+        assert_eq!(8960, sda.time_spent_doing_ios_ms);
+        assert_eq!(24990, sda.weighted_time_spent_doing_ios_ms);
+
+        let sda1 = measurement.stats.get("sda1").unwrap();
+        assert_eq!(483, sda1.reads_completed_successfully);
+        assert_eq!(4782, sda1.reads_merged);
+        assert_eq!(41466, sda1.sectors_read);
+        assert_eq!(21230592, sda1.bytes_read());
+        assert_eq!(1100, sda1.time_spent_reading_ms);
+        assert_eq!(7, sda1.writes_completed);
+        assert_eq!(1, sda1.writes_merged);
+        assert_eq!(28, sda1.sectors_written);
+        assert_eq!(14336, sda1.bytes_written());
+        assert_eq!(40, sda1.time_spent_writing_ms);
+        assert_eq!(0, sda1.ios_currently_in_progress);
+        assert_eq!(930, sda1.time_spent_doing_ios_ms);
+        assert_eq!(1140, sda1.weighted_time_spent_doing_ios_ms);
+    }
+
+    #[test]
+    fn test_read_and_parse_proc_diskstats_kernel_4_18_plus() {
+        let measurement = read_and_parse_proc_diskstats(&Path::new("fixtures/linux/disk_stats/proc_diskstats_4_18")).unwrap();
 
         assert!(measurement.precise_time_ns > 0);
 
