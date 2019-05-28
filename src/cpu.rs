@@ -478,17 +478,17 @@ mod test {
         };
 
         let expected = CpuStat {
-            total: 30,
-            user: 3,
-            nice: 3,
-            system: 3,
-            idle: 3,
-            iowait: 3,
-            irq: 3,
-            softirq: 3,
-            steal: 3,
-            guest: 3,
-            guestnice: 3
+            total: 120,
+            user: 12,
+            nice: 12,
+            system: 12,
+            idle: 12,
+            iowait: 12,
+            irq: 12,
+            softirq: 12,
+            steal: 12,
+            guest: 12,
+            guestnice: 12
         };
 
         let stat = measurement1.calculate_per_minute(&measurement2).unwrap();

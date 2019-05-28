@@ -285,17 +285,17 @@ mod tests {
 
         let per_minute = measurement1.calculate_per_minute(&measurement2).unwrap();
         let sda1 = per_minute.stats.get("sda1").unwrap();
-        assert_eq!(sda1.reads_completed_successfully, 60);
-        assert_eq!(sda1.reads_merged, 60);
-        assert_eq!(sda1.sectors_read, 60);
-        assert_eq!(sda1.time_spent_reading_ms, 60);
-        assert_eq!(sda1.writes_completed, 60);
-        assert_eq!(sda1.writes_merged, 60);
-        assert_eq!(sda1.sectors_written, 60);
-        assert_eq!(sda1.time_spent_writing_ms, 60);
-        assert_eq!(sda1.ios_currently_in_progress, 60);
-        assert_eq!(sda1.time_spent_doing_ios_ms, 60);
-        assert_eq!(sda1.weighted_time_spent_doing_ios_ms, 60);
+        assert_eq!(sda1.reads_completed_successfully, 240);
+        assert_eq!(sda1.reads_merged, 240);
+        assert_eq!(sda1.sectors_read, 240);
+        assert_eq!(sda1.time_spent_reading_ms, 240);
+        assert_eq!(sda1.writes_completed, 240);
+        assert_eq!(sda1.writes_merged, 240);
+        assert_eq!(sda1.sectors_written, 240);
+        assert_eq!(sda1.time_spent_writing_ms, 240);
+        assert_eq!(sda1.ios_currently_in_progress, 240);
+        assert_eq!(sda1.time_spent_doing_ios_ms, 240);
+        assert_eq!(sda1.weighted_time_spent_doing_ios_ms, 240);
     }
 
     #[test]

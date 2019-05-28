@@ -287,12 +287,12 @@ mod tests {
         assert_eq!(2, per_minute.interfaces.len());
 
         let eth0 = per_minute.interfaces.get("eth0").unwrap();
-        assert_eq!(500, eth0.received);
-        assert_eq!(800, eth0.transmitted);
+        assert_eq!(2000, eth0.received);
+        assert_eq!(3200, eth0.transmitted);
 
         let eth1 = per_minute.interfaces.get("eth0").unwrap();
-        assert_eq!(500, eth1.received);
-        assert_eq!(800, eth1.transmitted);
+        assert_eq!(2000, eth1.received);
+        assert_eq!(3200, eth1.transmitted);
     }
 
     #[test]
