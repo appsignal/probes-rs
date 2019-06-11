@@ -1,6 +1,6 @@
 [package]
 name = "probes"
-version = "0.2.2"
+version = "0.3.0"
 authors = ["Thijs Cadier <thijs@appsignal.com>",
            "Robert Beekman <robert@appsignal.com>",
            "Timon Vonk <mail@timonv.nl>"]
