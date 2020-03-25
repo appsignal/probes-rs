@@ -1,8 +1,8 @@
 // These methods are described in:
 // http://nadeausoftware.com/articles/2012/07/c_c_tip_how_get_process_resident_set_size_physical_memory_use
 
-use libc;
 use super::Result;
+use libc;
 
 /// Get the current RSS memory of this process in KB
 #[cfg(target_os = "linux")]
@@ -24,12 +24,12 @@ pub fn max_rss() -> u64 {
 
 #[cfg(target_os = "linux")]
 mod os {
-    use std::mem;
-    use libc;
-    use std::path::Path;
-    use super::super::Result;
-    use super::super::ProbeError;
     use super::super::file_to_string;
+    use super::super::ProbeError;
+    use super::super::Result;
+    use libc;
+    use std::mem::MaybeUninit;
+    use std::path::Path;
 
     #[inline]
     pub fn current_rss() -> Result<u64> {
@@ -47,12 +47,14 @@ mod os {
         let segments: Vec<&str> = raw_data.split_whitespace().collect();
 
         if segments.len() < 2 {
-            return Err(ProbeError::UnexpectedContent("Incorrect number of segments".to_owned()))
+            return Err(ProbeError::UnexpectedContent(
+                "Incorrect number of segments".to_owned(),
+            ));
         }
 
-        let pages: u64 = segments[1].parse().map_err(|_| {
-            ProbeError::UnexpectedContent("Could not parse segment".to_owned())
-        })?;
+        let pages: u64 = segments[1]
+            .parse()
+            .map_err(|_| ProbeError::UnexpectedContent("Could not parse segment".to_owned()))?;
 
         // Value is in pages, needs to be multiplied by the page size to get a value in KB. We ask the OS
         // for this information using sysconf.
@@ -63,17 +65,20 @@ mod os {
 
     #[inline]
     pub fn max_rss() -> u64 {
-        let mut rusage: libc::rusage = unsafe { mem::uninitialized() };
-        unsafe { libc::getrusage(libc::RUSAGE_SELF, &mut rusage) };
+        let rusage = unsafe {
+            let mut rusage = MaybeUninit::uninit();
+            libc::getrusage(libc::RUSAGE_SELF, rusage.as_mut_ptr());
+            rusage.assume_init()
+        };
         rusage.ru_maxrss as u64
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::ProbeError;
     use libc;
     use std::path::Path;
-    use super::super::ProbeError;
 
     #[test]
     fn test_current_rss() {
@@ -95,7 +100,7 @@ mod tests {
         let path = Path::new("/nonsense");
         match super::os::read_and_get_current_rss(&path) {
             Err(ProbeError::IO(_, _)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -104,7 +109,7 @@ mod tests {
         let path = Path::new("fixtures/linux/process_memory/proc_self_statm_incomplete");
         match super::os::read_and_get_current_rss(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -113,7 +118,7 @@ mod tests {
         let path = Path::new("fixtures/linux/process_memory/proc_self_statm_garbage");
         match super::os::read_and_get_current_rss(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 

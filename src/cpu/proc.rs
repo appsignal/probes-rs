@@ -1,10 +1,10 @@
-use super::super::{Result,calculate_time_difference,time_adjusted};
+use super::super::{calculate_time_difference, time_adjusted, Result};
 
 /// Measurement of cpu stats at a certain time
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct CpuMeasurement {
     pub precise_time_ns: u64,
-    pub stat: CpuStat
+    pub stat: CpuStat,
 }
 
 impl CpuMeasurement {
@@ -12,26 +12,82 @@ impl CpuMeasurement {
     /// It is advisable to make the next measurement roughly a minute from this one for the
     /// most reliable result.
     pub fn calculate_per_minute(&self, next_measurement: &CpuMeasurement) -> Result<CpuStat> {
-        let time_difference = calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns)?;
+        let time_difference =
+            calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns)?;
 
         Ok(CpuStat {
-            total: time_adjusted("total", next_measurement.stat.total, self.stat.total, time_difference)?,
-            user: time_adjusted("user", next_measurement.stat.user, self.stat.user, time_difference)?,
-            nice: time_adjusted("nice", next_measurement.stat.nice, self.stat.nice, time_difference)?,
-            system: time_adjusted("system", next_measurement.stat.system, self.stat.system, time_difference)?,
-            idle: time_adjusted("idle", next_measurement.stat.idle, self.stat.idle, time_difference)?,
-            iowait: time_adjusted("iowait", next_measurement.stat.iowait, self.stat.iowait, time_difference)?,
-            irq: time_adjusted("irq", next_measurement.stat.irq, self.stat.irq, time_difference)?,
-            softirq: time_adjusted("softirq", next_measurement.stat.softirq, self.stat.softirq, time_difference)?,
-            steal: time_adjusted("steal", next_measurement.stat.steal, self.stat.steal, time_difference)?,
-            guest: time_adjusted("guest", next_measurement.stat.guest, self.stat.guest, time_difference)?,
-            guestnice: time_adjusted("guestnice", next_measurement.stat.guestnice, self.stat.guestnice, time_difference)?
+            total: time_adjusted(
+                "total",
+                next_measurement.stat.total,
+                self.stat.total,
+                time_difference,
+            )?,
+            user: time_adjusted(
+                "user",
+                next_measurement.stat.user,
+                self.stat.user,
+                time_difference,
+            )?,
+            nice: time_adjusted(
+                "nice",
+                next_measurement.stat.nice,
+                self.stat.nice,
+                time_difference,
+            )?,
+            system: time_adjusted(
+                "system",
+                next_measurement.stat.system,
+                self.stat.system,
+                time_difference,
+            )?,
+            idle: time_adjusted(
+                "idle",
+                next_measurement.stat.idle,
+                self.stat.idle,
+                time_difference,
+            )?,
+            iowait: time_adjusted(
+                "iowait",
+                next_measurement.stat.iowait,
+                self.stat.iowait,
+                time_difference,
+            )?,
+            irq: time_adjusted(
+                "irq",
+                next_measurement.stat.irq,
+                self.stat.irq,
+                time_difference,
+            )?,
+            softirq: time_adjusted(
+                "softirq",
+                next_measurement.stat.softirq,
+                self.stat.softirq,
+                time_difference,
+            )?,
+            steal: time_adjusted(
+                "steal",
+                next_measurement.stat.steal,
+                self.stat.steal,
+                time_difference,
+            )?,
+            guest: time_adjusted(
+                "guest",
+                next_measurement.stat.guest,
+                self.stat.guest,
+                time_difference,
+            )?,
+            guestnice: time_adjusted(
+                "guestnice",
+                next_measurement.stat.guestnice,
+                self.stat.guestnice,
+                time_difference,
+            )?,
         })
     }
 }
 
 /// Cpu stats for a minute
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct CpuStat {
     pub total: u64,
     pub user: u64,
@@ -43,7 +99,7 @@ pub struct CpuStat {
     pub softirq: u64,
     pub steal: u64,
     pub guest: u64,
-    pub guestnice: u64
+    pub guestnice: u64,
 }
 
 impl CpuStat {
@@ -59,7 +115,7 @@ impl CpuStat {
             softirq: self.percentage_of_total(self.softirq),
             steal: self.percentage_of_total(self.steal),
             guest: self.percentage_of_total(self.guest),
-            guestnice: self.percentage_of_total(self.guestnice)
+            guestnice: self.percentage_of_total(self.guestnice),
         }
     }
 
@@ -69,7 +125,7 @@ impl CpuStat {
 }
 
 /// Cpu stats converted to percentages
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct CpuStatPercentages {
     pub user: f32,
     pub nice: f32,
@@ -80,7 +136,7 @@ pub struct CpuStatPercentages {
     pub softirq: f32,
     pub steal: f32,
     pub guest: f32,
-    pub guestnice: f32
+    pub guestnice: f32,
 }
 
 /// Read the current CPU stats of the system.
@@ -91,12 +147,12 @@ pub fn read() -> Result<CpuMeasurement> {
 
 #[cfg(target_os = "linux")]
 mod os {
-    use std::path::Path;
-    use std::io::BufRead;
-    use time;
-    use super::super::super::{Result,file_to_buf_reader,parse_u64,path_to_string};
-    use super::{CpuMeasurement,CpuStat};
+    use super::super::super::{file_to_buf_reader, parse_u64, path_to_string, Result};
+    use super::{CpuMeasurement, CpuStat};
     use error::ProbeError;
+    use std::io::BufRead;
+    use std::path::Path;
+    use time;
 
     #[inline]
     pub fn read() -> Result<CpuMeasurement> {
@@ -108,16 +164,17 @@ mod os {
         // columns: user nice system idle iowait irq softirq
         let mut reader = file_to_buf_reader(path)?;
         let time = time::precise_time_ns();
-        reader.read_line(&mut line).map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
+        reader
+            .read_line(&mut line)
+            .map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
 
-        let stats: Vec<&str> = line
-            .split_whitespace()
-            .skip(1)
-            .collect();
+        let stats: Vec<&str> = line.split_whitespace().skip(1).collect();
 
         let length = stats.len();
         if length < 5 {
-            return Err(ProbeError::UnexpectedContent("Incorrect number of stats".to_owned()));
+            return Err(ProbeError::UnexpectedContent(
+                "Incorrect number of stats".to_owned(),
+            ));
         }
 
         let usertime = parse_u64(stats[0])?;
@@ -135,8 +192,8 @@ mod os {
             irq: parse_u64(*stats.get(5).unwrap_or(&"0"))?,
             softirq: parse_u64(*stats.get(6).unwrap_or(&"0"))?,
             steal: parse_u64(*stats.get(7).unwrap_or(&"0"))?,
-            guest: guest,
-            guestnice: guestnice
+            guest,
+            guestnice,
         };
         let idlealltime = cpu.idle + cpu.iowait;
         let systemalltime = cpu.system + cpu.irq + cpu.softirq;
@@ -145,17 +202,17 @@ mod os {
 
         Ok(CpuMeasurement {
             precise_time_ns: time,
-            stat: cpu
+            stat: cpu,
         })
     }
 }
 
 #[cfg(test)]
 mod test {
-    use super::{CpuMeasurement,CpuStat,CpuStatPercentages};
     use super::os::read_and_parse_proc_stat;
-    use std::path::Path;
+    use super::{CpuMeasurement, CpuStat, CpuStatPercentages};
     use error::ProbeError;
+    use std::path::Path;
 
     #[test]
     fn test_read_cpu() {
@@ -164,7 +221,8 @@ mod test {
 
     #[test]
     fn test_read_proc_measurement() {
-        let measurement = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat")).unwrap();
+        let measurement =
+            read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat")).unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total, 39);
         assert_eq!(cpu.user, 8);
@@ -181,7 +239,8 @@ mod test {
 
     #[test]
     fn test_read_proc_measurement_from_partial() {
-        let measurement = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_partial")).unwrap();
+        let measurement =
+            read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_partial")).unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total, 31);
         assert_eq!(cpu.user, 10);
@@ -200,7 +259,7 @@ mod test {
     fn test_proc_wrong_path() {
         match read_and_parse_proc_stat(&Path::new("bananas")) {
             Err(ProbeError::IO(_, _)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -208,7 +267,7 @@ mod test {
     fn test_read_and_parse_proc_stat_incomplete() {
         match read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_incomplete")) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -217,7 +276,7 @@ mod test {
         let path = Path::new("fixtures/linux/cpu/proc_stat_garbage");
         match read_and_parse_proc_stat(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -236,8 +295,8 @@ mod test {
                 softirq: 0,
                 steal: 0,
                 guest: 0,
-                guestnice: 0
-            }
+                guestnice: 0,
+            },
         };
 
         let measurement2 = CpuMeasurement {
@@ -253,13 +312,13 @@ mod test {
                 softirq: 0,
                 steal: 0,
                 guest: 0,
-                guestnice: 0
-            }
+                guestnice: 0,
+            },
         };
 
         match measurement1.calculate_per_minute(&measurement2) {
             Err(ProbeError::InvalidInput(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -278,8 +337,8 @@ mod test {
                 softirq: 10,
                 steal: 20,
                 guest: 200,
-                guestnice: 100
-            }
+                guestnice: 100,
+            },
         };
 
         let measurement2 = CpuMeasurement {
@@ -295,8 +354,8 @@ mod test {
                 softirq: 16,
                 steal: 26,
                 guest: 206,
-                guestnice: 106
-            }
+                guestnice: 106,
+            },
         };
 
         let expected = CpuStat {
@@ -310,7 +369,7 @@ mod test {
             softirq: 6,
             steal: 6,
             guest: 6,
-            guestnice: 6
+            guestnice: 6,
         };
 
         let stat = measurement1.calculate_per_minute(&measurement2).unwrap();
@@ -333,8 +392,8 @@ mod test {
                 softirq: 10,
                 steal: 20,
                 guest: 200,
-                guestnice: 100
-            }
+                guestnice: 100,
+            },
         };
 
         let measurement2 = CpuMeasurement {
@@ -350,8 +409,8 @@ mod test {
                 softirq: 16,
                 steal: 26,
                 guest: 206,
-                guestnice: 106
-            }
+                guestnice: 106,
+            },
         };
 
         let expected = CpuStat {
@@ -365,7 +424,7 @@ mod test {
             softirq: 12,
             steal: 12,
             guest: 12,
-            guestnice: 12
+            guestnice: 12,
         };
 
         let stat = measurement1.calculate_per_minute(&measurement2).unwrap();
@@ -388,8 +447,8 @@ mod test {
                 softirq: 10,
                 steal: 20,
                 guest: 200,
-                guestnice: 100
-            }
+                guestnice: 100,
+            },
         };
 
         let measurement2 = CpuMeasurement {
@@ -405,13 +464,13 @@ mod test {
                 softirq: 16,
                 steal: 26,
                 guest: 206,
-                guestnice: 106
-            }
+                guestnice: 106,
+            },
         };
 
         match measurement1.calculate_per_minute(&measurement2) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -428,7 +487,7 @@ mod test {
             softirq: 20,
             steal: 50,
             guest: 50,
-            guestnice: 30
+            guestnice: 30,
         };
 
         let expected = CpuStatPercentages {
@@ -441,7 +500,7 @@ mod test {
             softirq: 2.0,
             steal: 5.0,
             guest: 5.0,
-            guestnice: 3.0
+            guestnice: 3.0,
         };
 
         assert_eq!(stat.in_percentages(), expected);
@@ -460,7 +519,7 @@ mod test {
             softirq: 2,
             steal: 50,
             guest: 55,
-            guestnice: 35
+            guestnice: 35,
         };
 
         let expected = CpuStatPercentages {
@@ -473,7 +532,7 @@ mod test {
             softirq: 0.2,
             steal: 5.0,
             guest: 5.5,
-            guestnice: 3.5
+            guestnice: 3.5,
         };
 
         assert_eq!(stat.in_percentages(), expected);
@@ -481,9 +540,11 @@ mod test {
 
     #[test]
     fn test_in_percentages_integration() {
-        let mut measurement1 = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_1")).unwrap();
+        let mut measurement1 =
+            read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_1")).unwrap();
         measurement1.precise_time_ns = 60_000_000_000;
-        let mut measurement2 = read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_2")).unwrap();
+        let mut measurement2 =
+            read_and_parse_proc_stat(&Path::new("fixtures/linux/cpu/proc_stat_2")).unwrap();
         measurement2.precise_time_ns = 120_000_000_000;
 
         let stat = measurement1.calculate_per_minute(&measurement2).unwrap();
@@ -526,7 +587,12 @@ mod test {
         let idlealltime = in_percentages.idle + in_percentages.iowait;
         let systemalltime = in_percentages.system + in_percentages.irq + in_percentages.softirq;
         let virtualtime = in_percentages.guest + in_percentages.guestnice;
-        let total = (in_percentages.user + in_percentages.nice + systemalltime + idlealltime + in_percentages.steal + virtualtime) as f64;
+        let total = (in_percentages.user
+            + in_percentages.nice
+            + systemalltime
+            + idlealltime
+            + in_percentages.steal
+            + virtualtime) as f64;
 
         assert!(total < 100.1);
         assert!(total > 99.9);

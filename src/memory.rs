@@ -1,6 +1,6 @@
 use super::Result;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Memory {
     total: u64,
     free: u64,
@@ -63,9 +63,9 @@ mod os {
     use std::io::BufRead;
     use std::path::Path;
 
-    use super::{Memory,PROC_MEMORY_NUMBER_OF_FIELDS,SYS_MEMORY_NUMBER_OF_FIELDS};
-    use super::super::{ProbeError,Result,path_to_string};
-    use super::super::{file_to_buf_reader,parse_u64,dir_exists};
+    use super::super::{dir_exists, file_to_buf_reader, parse_u64};
+    use super::super::{path_to_string, ProbeError, Result};
+    use super::{Memory, PROC_MEMORY_NUMBER_OF_FIELDS, SYS_MEMORY_NUMBER_OF_FIELDS};
 
     #[inline]
     pub fn read() -> Result<Memory> {
@@ -77,7 +77,10 @@ mod os {
         if dir_exists(sys_fs_dir) {
             read_and_parse_sys_memory(&sys_fs_dir)
         } else {
-            let message = format!("Directory `{}` not found", sys_fs_dir.to_str().unwrap_or("unknown path"));
+            let message = format!(
+                "Directory `{}` not found",
+                sys_fs_dir.to_str().unwrap_or("unknown path")
+            );
             Err(ProbeError::UnexpectedContent(message))
         }
     }
@@ -110,37 +113,39 @@ mod os {
                 "MemTotal:" => {
                     memory.total = value;
                     1
-                },
+                }
                 "MemFree:" => {
                     free = value;
                     1
-                },
+                }
                 "Buffers:" => {
                     memory.buffers = value;
                     1
-                },
+                }
                 "Cached:" => {
                     memory.cached = value;
                     1
-                },
+                }
                 "SwapTotal:" => {
                     memory.swap_total = value;
                     1
-                },
+                }
                 "SwapFree:" => {
                     memory.swap_free = value;
                     1
-                },
-                _ => 0
+                }
+                _ => 0,
             };
 
             if fields_encountered == PROC_MEMORY_NUMBER_OF_FIELDS {
-                break
+                break;
             }
         }
 
         if fields_encountered != PROC_MEMORY_NUMBER_OF_FIELDS {
-            return Err(ProbeError::UnexpectedContent("Did not encounter all expected fields".to_owned()))
+            return Err(ProbeError::UnexpectedContent(
+                "Did not encounter all expected fields".to_owned(),
+            ));
         }
 
         // Total amount of free physical memory in Kb.
@@ -165,8 +170,10 @@ mod os {
             swap_used: 0,
         };
 
-        memory.total = bytes_to_kilo_bytes(read_file_value_as_u64(&path.join("memory.limit_in_bytes"))?);
-        let used_memory = bytes_to_kilo_bytes(read_file_value_as_u64(&path.join("memory.usage_in_bytes"))?);
+        memory.total =
+            bytes_to_kilo_bytes(read_file_value_as_u64(&path.join("memory.limit_in_bytes"))?);
+        let used_memory =
+            bytes_to_kilo_bytes(read_file_value_as_u64(&path.join("memory.usage_in_bytes"))?);
 
         let mut fields_encountered = 0;
         let reader = file_to_buf_reader(&path.join("memory.stat"))?;
@@ -179,36 +186,37 @@ mod os {
                 "cache" => {
                     memory.cached = bytes_to_kilo_bytes(value);
                     1
-                },
-                _ => 0
+                }
+                _ => 0,
             };
 
             if fields_encountered == SYS_MEMORY_NUMBER_OF_FIELDS {
-                break
+                break;
             }
         }
         memory.used = used_memory - memory.cached;
         memory.free = memory.total - memory.used;
 
         // If swap is not configured for the container, read 0 as value
-        memory.swap_total = match read_file_value_as_u64(&path.join("memory.memsw.limit_in_bytes")) {
-            Ok(value) => bytes_to_kilo_bytes(value).checked_sub(memory.total).unwrap_or(0),
-            Err(_) => 0
+        memory.swap_total = match read_file_value_as_u64(&path.join("memory.memsw.limit_in_bytes"))
+        {
+            Ok(value) => bytes_to_kilo_bytes(value).saturating_sub(memory.total),
+            Err(_) => 0,
         };
         // If swap is not configured for the container, read 0 as value
         memory.swap_used = match read_file_value_as_u64(&path.join("memory.memsw.usage_in_bytes")) {
-            Ok(value) => bytes_to_kilo_bytes(value).checked_sub(used_memory).unwrap_or(0),
-            Err(_) => 0
+            Ok(value) => bytes_to_kilo_bytes(value).saturating_sub(used_memory),
+            Err(_) => 0,
         };
-        memory.swap_free = memory.swap_total.checked_sub(memory.swap_used).unwrap_or(0);
-
+        memory.swap_free = memory.swap_total.saturating_sub(memory.swap_used);
         Ok(memory)
     }
 
     fn read_file_value_as_u64(path: &Path) -> Result<u64> {
         let mut reader = file_to_buf_reader(path)?;
         let mut line = String::new();
-        reader.read_line(&mut line)
+        reader
+            .read_line(&mut line)
             .map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
         parse_u64(&line.trim())
     }
@@ -220,9 +228,9 @@ mod os {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
     use super::super::ProbeError;
     use super::Memory;
+    use std::path::Path;
 
     #[test]
     fn test_read_memory() {
@@ -259,7 +267,7 @@ mod tests {
         let path = Path::new("/nonsense");
         match super::os::read_and_parse_proc_memory(&path) {
             Err(ProbeError::IO(_, _)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -268,7 +276,7 @@ mod tests {
         let path = Path::new("fixtures/linux/memory/proc_meminfo_incomplete");
         match super::os::read_and_parse_proc_memory(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -277,7 +285,7 @@ mod tests {
         let path = Path::new("fixtures/linux/memory/proc_meminfo_garbage");
         match super::os::read_and_parse_proc_memory(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -288,7 +296,7 @@ mod tests {
 
         let expected = Memory {
             total: 512000, // 500mb
-            free: 503400, // total - used
+            free: 503400,  // total - used
             used: 8600,
             buffers: 0,
             cached: 58928,
@@ -306,7 +314,7 @@ mod tests {
         let path = Path::new("/nonsense");
         match super::os::read_and_parse_sys_memory(&path) {
             Err(ProbeError::IO(_, _)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -315,7 +323,7 @@ mod tests {
         let path = Path::new("fixtures/linux/sys/fs/cgroup/memory_incomplete/");
         match super::os::read_and_parse_sys_memory(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -324,7 +332,7 @@ mod tests {
         let path = Path::new("fixtures/linux/sys/fs/cgroup/memory_missing_files/");
         match super::os::read_and_parse_sys_memory(&path) {
             Err(ProbeError::IO(_, _)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -333,7 +341,7 @@ mod tests {
         let path = Path::new("fixtures/linux/sys/fs/cgroup/memory_garbage/");
         match super::os::read_and_parse_sys_memory(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -344,7 +352,7 @@ mod tests {
 
         let expected = Memory {
             total: 512000, // 500mb
-            free: 503400, // total - used
+            free: 503400,  // total - used
             used: 8600,
             buffers: 0,
             cached: 58928,

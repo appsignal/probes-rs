@@ -4,7 +4,7 @@
 [![Crate](http://meritbadge.herokuapp.com/probes)](https://crates.io/crates/probes)
 
 Rust library to read out system stats from a machine running Unix.
-Currently only supports Linux.
+Currently only supports Linux. Minimum supported Rust version is 1.36.0.
 
 ## Supported stats
 

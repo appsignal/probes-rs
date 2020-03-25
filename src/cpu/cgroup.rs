@@ -1,30 +1,49 @@
-use super::super::{Result,calculate_time_difference,time_adjusted};
+use super::super::{calculate_time_difference, time_adjusted, Result};
 
 /// Measurement of cpu stats at a certain time
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct CgroupCpuMeasurement {
     pub precise_time_ns: u64,
-    pub stat: CgroupCpuStat
+    pub stat: CgroupCpuStat,
 }
 
 impl CgroupCpuMeasurement {
-    pub fn calculate_per_minute(&self, next_measurement: &CgroupCpuMeasurement) -> Result<CgroupCpuStat> {
-        let time_difference = calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns)?;
+    pub fn calculate_per_minute(
+        &self,
+        next_measurement: &CgroupCpuMeasurement,
+    ) -> Result<CgroupCpuStat> {
+        let time_difference =
+            calculate_time_difference(self.precise_time_ns, next_measurement.precise_time_ns)?;
 
         Ok(CgroupCpuStat {
-            total_usage: time_adjusted("total_usage", next_measurement.stat.total_usage, self.stat.total_usage, time_difference)?,
-            user: time_adjusted("user", next_measurement.stat.user, self.stat.user, time_difference)?,
-            system: time_adjusted("system", next_measurement.stat.system, self.stat.system, time_difference)?
+            total_usage: time_adjusted(
+                "total_usage",
+                next_measurement.stat.total_usage,
+                self.stat.total_usage,
+                time_difference,
+            )?,
+            user: time_adjusted(
+                "user",
+                next_measurement.stat.user,
+                self.stat.user,
+                time_difference,
+            )?,
+            system: time_adjusted(
+                "system",
+                next_measurement.stat.system,
+                self.stat.system,
+                time_difference,
+            )?,
         })
     }
 }
 
 /// Container CPU stats for a minute
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct CgroupCpuStat {
     pub total_usage: u64,
     pub user: u64,
-    pub system: u64
+    pub system: u64,
 }
 
 impl CgroupCpuStat {
@@ -33,7 +52,7 @@ impl CgroupCpuStat {
         CgroupCpuStatPercentages {
             total_usage: self.percentage_of_total(self.total_usage),
             user: self.percentage_of_total(self.user),
-            system: self.percentage_of_total(self.system)
+            system: self.percentage_of_total(self.system),
         }
     }
 
@@ -44,11 +63,11 @@ impl CgroupCpuStat {
 }
 
 /// Cgroup Cpu stats converted to percentages
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct CgroupCpuStatPercentages {
     pub total_usage: f32,
     pub user: f32,
-    pub system: f32
+    pub system: f32,
 }
 
 /// Read the current CPU stats of the container.
@@ -59,12 +78,14 @@ pub fn read() -> Result<CgroupCpuMeasurement> {
 
 #[cfg(target_os = "linux")]
 mod os {
-    use std::path::Path;
-    use std::io::BufRead;
-    use time;
-    use super::super::super::{Result,file_to_buf_reader,parse_u64,path_to_string,read_file_value_as_u64,dir_exists};
-    use super::{CgroupCpuMeasurement,CgroupCpuStat};
+    use super::super::super::{
+        dir_exists, file_to_buf_reader, parse_u64, path_to_string, read_file_value_as_u64, Result,
+    };
+    use super::{CgroupCpuMeasurement, CgroupCpuStat};
     use error::ProbeError;
+    use std::io::BufRead;
+    use std::path::Path;
+    use time;
 
     const CPU_SYS_NUMBER_OF_FIELDS: usize = 2;
 
@@ -73,7 +94,10 @@ mod os {
         if dir_exists(sys_fs_dir) {
             read_and_parse_sys_stat(&sys_fs_dir)
         } else {
-            let message = format!("Directory `{}` not found", sys_fs_dir.to_str().unwrap_or("unknown path"));
+            let message = format!(
+                "Directory `{}` not found",
+                sys_fs_dir.to_str().unwrap_or("unknown path")
+            );
             Err(ProbeError::UnexpectedContent(message))
         }
     }
@@ -84,9 +108,9 @@ mod os {
         let total_usage = read_file_value_as_u64(&path.join("cpuacct.usage"))?;
 
         let mut cpu = CgroupCpuStat {
-            total_usage: total_usage,
+            total_usage,
             user: 0,
-            system: 0
+            system: 0,
         };
 
         let mut fields_encountered = 0;
@@ -98,25 +122,27 @@ mod os {
                 "user" => {
                     cpu.user = value * 10_000_000;
                     1
-                },
+                }
                 "system" => {
                     cpu.system = value * 10_000_000;
                     1
-                },
-                _ => 0
+                }
+                _ => 0,
             };
 
             if fields_encountered == CPU_SYS_NUMBER_OF_FIELDS {
-                break
+                break;
             }
         }
 
         if fields_encountered != CPU_SYS_NUMBER_OF_FIELDS {
-            return Err(ProbeError::UnexpectedContent("Did not encounter all expected fields".to_owned()))
+            return Err(ProbeError::UnexpectedContent(
+                "Did not encounter all expected fields".to_owned(),
+            ));
         }
         let measurement = CgroupCpuMeasurement {
             precise_time_ns: time,
-            stat: cpu
+            stat: cpu,
         };
         Ok(measurement)
     }
@@ -124,10 +150,10 @@ mod os {
 
 #[cfg(test)]
 mod test {
-    use super::{CgroupCpuMeasurement,CgroupCpuStat};
     use super::os::read_and_parse_sys_stat;
-    use std::path::Path;
+    use super::{CgroupCpuMeasurement, CgroupCpuStat};
     use error::ProbeError;
+    use std::path::Path;
 
     #[test]
     fn test_read() {
@@ -136,7 +162,8 @@ mod test {
 
     #[test]
     fn test_read_sys_measurement() {
-        let measurement = read_and_parse_sys_stat(&Path::new("fixtures/linux/sys/fs/cgroup/cpuacct_1/")).unwrap();
+        let measurement =
+            read_and_parse_sys_stat(&Path::new("fixtures/linux/sys/fs/cgroup/cpuacct_1/")).unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total_usage, 152657213021);
         assert_eq!(cpu.user, 149340000000);
@@ -147,15 +174,17 @@ mod test {
     fn test_read_sys_wrong_path() {
         match read_and_parse_sys_stat(&Path::new("bananas")) {
             Err(ProbeError::IO(_, _)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
     #[test]
     fn test_read_and_parse_sys_stat_incomplete() {
-        match read_and_parse_sys_stat(&Path::new("fixtures/linux/sys/fs/cgroup/cpuacct_incomplete/")) {
+        match read_and_parse_sys_stat(&Path::new(
+            "fixtures/linux/sys/fs/cgroup/cpuacct_incomplete/",
+        )) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -164,7 +193,7 @@ mod test {
         let path = Path::new("fixtures/linux/sys/fs/cgroup/cpuacct_garbage/");
         match read_and_parse_sys_stat(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -175,8 +204,8 @@ mod test {
             stat: CgroupCpuStat {
                 total_usage: 0,
                 user: 0,
-                system: 0
-            }
+                system: 0,
+            },
         };
 
         let measurement2 = CgroupCpuMeasurement {
@@ -184,16 +213,15 @@ mod test {
             stat: CgroupCpuStat {
                 total_usage: 0,
                 user: 0,
-                system: 0
-            }
+                system: 0,
+            },
         };
 
         match measurement1.calculate_per_minute(&measurement2) {
             Err(ProbeError::InvalidInput(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
-
 
     #[test]
     fn test_cgroup_calculate_per_minute_full_minute() {
@@ -202,8 +230,8 @@ mod test {
             stat: CgroupCpuStat {
                 total_usage: 6380,
                 user: 1000,
-                system: 1200
-            }
+                system: 1200,
+            },
         };
 
         let measurement2 = CgroupCpuMeasurement {
@@ -211,14 +239,14 @@ mod test {
             stat: CgroupCpuStat {
                 total_usage: 6440,
                 user: 1006,
-                system: 1206
-            }
+                system: 1206,
+            },
         };
 
         let expected = CgroupCpuStat {
             total_usage: 60,
             user: 6,
-            system: 6
+            system: 6,
         };
 
         let stat = measurement1.calculate_per_minute(&measurement2).unwrap();
@@ -233,8 +261,8 @@ mod test {
             stat: CgroupCpuStat {
                 total_usage: 1_000_000_000,
                 user: 10000_000_000,
-                system: 12000_000_000
-            }
+                system: 12000_000_000,
+            },
         };
 
         let measurement2 = CgroupCpuMeasurement {
@@ -242,14 +270,14 @@ mod test {
             stat: CgroupCpuStat {
                 total_usage: 1_500_000_000,
                 user: 10060_000_000,
-                system: 12060_000_000
-            }
+                system: 12060_000_000,
+            },
         };
 
         let expected = CgroupCpuStat {
             total_usage: 1_000_000_000,
             user: 120_000_000,
-            system: 120_000_000
+            system: 120_000_000,
         };
 
         let stat = measurement1.calculate_per_minute(&measurement2).unwrap();
@@ -264,8 +292,8 @@ mod test {
             stat: CgroupCpuStat {
                 total_usage: 63800_000_000,
                 user: 10000_000_000,
-                system: 12000_000_000
-            }
+                system: 12000_000_000,
+            },
         };
 
         let measurement2 = CgroupCpuMeasurement {
@@ -273,13 +301,13 @@ mod test {
             stat: CgroupCpuStat {
                 total_usage: 10400_000_000,
                 user: 1060_000_000,
-                system: 1260_000_000
-            }
+                system: 1260_000_000,
+            },
         };
 
         match measurement1.calculate_per_minute(&measurement2) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -288,7 +316,7 @@ mod test {
         let stat = CgroupCpuStat {
             total_usage: 24000000000,
             user: 16800000000,
-            system: 1200000000
+            system: 1200000000,
         };
 
         let in_percentages = stat.in_percentages();
@@ -310,7 +338,7 @@ mod test {
         let stat = CgroupCpuStat {
             total_usage: 24000000000,
             user: 17100000000,
-            system: 900000000
+            system: 900000000,
         };
 
         let in_percentages = stat.in_percentages();
@@ -329,9 +357,11 @@ mod test {
 
     #[test]
     fn test_in_percentages_integration() {
-        let mut measurement1 = read_and_parse_sys_stat(&Path::new("fixtures/linux/sys/fs/cgroup/cpuacct_1/")).unwrap();
+        let mut measurement1 =
+            read_and_parse_sys_stat(&Path::new("fixtures/linux/sys/fs/cgroup/cpuacct_1/")).unwrap();
         measurement1.precise_time_ns = 375953965125920;
-        let mut measurement2 = read_and_parse_sys_stat(&Path::new("fixtures/linux/sys/fs/cgroup/cpuacct_2/")).unwrap();
+        let mut measurement2 =
+            read_and_parse_sys_stat(&Path::new("fixtures/linux/sys/fs/cgroup/cpuacct_2/")).unwrap();
         measurement2.precise_time_ns = 376013815302920;
 
         let stat = measurement1.calculate_per_minute(&measurement2).unwrap();
