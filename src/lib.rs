@@ -17,7 +17,7 @@ use std::io::BufRead;
 use std::path::Path;
 use std::result;
 
-pub use error::ProbeError;
+pub use crate::error::ProbeError;
 
 pub type Result<T> = result::Result<T, error::ProbeError>;
 
@@ -76,7 +76,7 @@ fn dir_exists(path: &Path) -> bool {
 
 #[inline]
 fn read_file_value_as_u64(path: &Path) -> Result<u64> {
-    let mut reader = try!(file_to_buf_reader(path));
+    let mut reader = file_to_buf_reader(path)?;
     let mut line = String::new();
     reader.read_line(&mut line).map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
     parse_u64(&line.trim())

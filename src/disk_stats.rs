@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use std::path::Path;
+
 use super::{Result,time_adjusted,calculate_time_difference};
-use error::ProbeError;
+use crate::error::ProbeError;
 
 pub type DiskStats = HashMap<String, DiskStat>;
 

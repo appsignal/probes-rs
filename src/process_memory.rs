@@ -1,8 +1,8 @@
 // These methods are described in:
 // http://nadeausoftware.com/articles/2012/07/c_c_tip_how_get_process_resident_set_size_physical_memory_use
 
-use libc;
-use super::Result;
+
+
 
 /// Get the current RSS memory of this process in KB
 #[cfg(target_os = "linux")]
