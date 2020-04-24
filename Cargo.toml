@@ -11,5 +11,5 @@ keywords = ["unix", "linux", "probe"]
 license = "MIT"
 
 [dependencies]
-libc = ">= 0.2.0"
-time = ">= 0.1.34"
+libc = "0.2"
+time = "0.1.34"
