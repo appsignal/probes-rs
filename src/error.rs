@@ -32,7 +32,7 @@ impl error::Error for ProbeError {
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             ProbeError::IO(ref err, ref _path) => Some(err),
             ProbeError::UnexpectedContent(_) => None,

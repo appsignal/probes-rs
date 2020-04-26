@@ -65,7 +65,7 @@ mod os {
 
     use super::{NetworkTraffic,Interfaces,NetworkTrafficMeasurement};
     use super::super::{Result,file_to_buf_reader,parse_u64,path_to_string};
-    use error::ProbeError;
+    use crate::error::ProbeError;
 
     #[inline]
     pub fn read() -> Result<NetworkTrafficMeasurement> {

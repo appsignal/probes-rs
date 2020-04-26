@@ -96,7 +96,7 @@ mod os {
     use time;
     use super::super::super::{Result,file_to_buf_reader,parse_u64,path_to_string};
     use super::{CpuMeasurement,CpuStat};
-    use error::ProbeError;
+    use crate::error::ProbeError;
 
     #[inline]
     pub fn read() -> Result<CpuMeasurement> {
@@ -155,7 +155,7 @@ mod test {
     use super::{CpuMeasurement,CpuStat,CpuStatPercentages};
     use super::os::read_and_parse_proc_stat;
     use std::path::Path;
-    use error::ProbeError;
+    use crate::error::ProbeError;
 
     #[test]
     fn test_read_cpu() {

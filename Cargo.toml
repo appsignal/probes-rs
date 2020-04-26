@@ -9,6 +9,7 @@ readme = "README.md"
 repository = "https://github.com/appsignal/probes-rs"
 keywords = ["unix", "linux", "probe"]
 license = "MIT"
+edition = "2018"
 
 [dependencies]
 libc = "0.2"
