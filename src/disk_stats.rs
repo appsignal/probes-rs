@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 use super::{Result,time_adjusted,calculate_time_difference};
-use error::ProbeError;
+use crate::error::ProbeError;
 
 pub type DiskStats = HashMap<String, DiskStat>;
 
@@ -135,7 +135,7 @@ mod os {
 mod tests {
     use std::collections::HashMap;
     use std::path::Path;
-    use error::ProbeError;
+    use crate::error::ProbeError;
     use super::DiskStatsMeasurement;
     use super::os::read_and_parse_proc_diskstats;
 

@@ -64,7 +64,7 @@ mod os {
     use time;
     use super::super::super::{Result,file_to_buf_reader,parse_u64,path_to_string,read_file_value_as_u64,dir_exists};
     use super::{CgroupCpuMeasurement,CgroupCpuStat};
-    use error::ProbeError;
+    use crate::error::ProbeError;
 
     const CPU_SYS_NUMBER_OF_FIELDS: usize = 2;
 
@@ -127,7 +127,7 @@ mod test {
     use super::{CgroupCpuMeasurement,CgroupCpuStat};
     use super::os::read_and_parse_sys_stat;
     use std::path::Path;
-    use error::ProbeError;
+    use crate::error::ProbeError;
 
     #[test]
     fn test_read() {
