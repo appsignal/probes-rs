@@ -63,7 +63,7 @@ mod os {
 
     #[inline]
     pub fn max_rss() -> u64 {
-        let mut rusage: libc::rusage = unsafe { mem::uninitialized() };
+        let mut rusage: libc::rusage = unsafe { mem::MaybeUninit::uninit().assume_init() };
         unsafe { libc::getrusage(libc::RUSAGE_SELF, &mut rusage) };
         rusage.ru_maxrss as u64
     }
