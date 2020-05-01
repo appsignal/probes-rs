@@ -132,6 +132,7 @@ mod os {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
     use std::collections::HashMap;
     use std::path::Path;

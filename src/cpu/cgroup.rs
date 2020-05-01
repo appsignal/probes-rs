@@ -123,6 +123,7 @@ mod os {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod test {
     use super::{CgroupCpuMeasurement,CgroupCpuStat};
     use super::os::read_and_parse_sys_stat;

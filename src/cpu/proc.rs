@@ -151,6 +151,7 @@ mod os {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod test {
     use super::{CpuMeasurement,CpuStat,CpuStatPercentages};
     use super::os::read_and_parse_proc_stat;

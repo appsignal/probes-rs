@@ -141,6 +141,7 @@ mod os {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "linux")]
 mod tests {
     use std::path::Path;
     use time;
