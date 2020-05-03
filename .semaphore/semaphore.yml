@@ -48,5 +48,12 @@ blocks:
       - name: "Build + Test"
         commands:
           - docker build -t probes/ubuntu_1804 docker/ubuntu_1804 
-          - docker run --rm -v $(pwd)/tmp/ubuntu_1804/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/ubuntu_1804 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"           
-  
+          - docker run --rm -v $(pwd)/tmp/ubuntu_1804/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/ubuntu_1804 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"
+  - name: "Ubuntu 20.04"
+    dependencies: []
+    task:
+      jobs:
+      - name: "Build + Test"
+        commands:
+          - docker build -t probes/ubuntu_2004 docker/ubuntu_2004 
+          - docker run --rm -v $(pwd)/tmp/ubuntu_2004/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/ubuntu_2004 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"
