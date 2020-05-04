@@ -1,0 +1,75 @@
+version: v1.0
+name: probes-rs
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+global_job_config:
+  prologue:
+    commands:
+      - checkout
+blocks:
+  - name: "Fedora 31"
+    dependencies: []
+    task:
+      jobs:
+      - name: "Build + Test"
+        commands:
+          - docker build -t probes/fedora_31 docker/fedora_31
+          - docker run --rm -v $(pwd)/tmp/fedora_31/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/fedora_31 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"
+  - name: "CentOS 7"
+    dependencies: []
+    task:
+      jobs:
+      - name: "Build + Test"
+        commands:
+          - docker build -t probes/centos_7 docker/centos_7
+          - docker run --rm -v $(pwd)/tmp/centos_7/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/centos_7 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"
+  - name: "CentOS 8"
+    dependencies: []
+    task:
+      jobs:
+      - name: "Build + Test"
+        commands:
+          - docker build -t probes/centos_8 docker/centos_8
+          - docker run --rm -v $(pwd)/tmp/centos_8/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/centos_8 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"
+  - name: "Ubuntu 12.04"
+    dependencies: []
+    task:
+      jobs:
+      - name: "Build + Test"
+        commands:
+          - docker build -t probes/ubuntu_1204 docker/ubuntu_1204
+          - docker run --rm -v $(pwd)/tmp/ubuntu_1204/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/ubuntu_1204 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"
+  - name: "Ubuntu 14.04"
+    dependencies: []
+    task:
+      jobs:
+      - name: "Build + Test"
+        commands:
+          - docker build -t probes/ubuntu_1404 docker/ubuntu_1404
+          - docker run --rm -v $(pwd)/tmp/ubuntu_1404/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/ubuntu_1404 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"       
+  - name: "Ubuntu 16.04"
+    dependencies: []
+    task:
+      jobs:
+      - name: "Build + Test"
+        commands:
+          - docker build -t probes/ubuntu_1604 docker/ubuntu_1604
+          - docker run --rm -v $(pwd)/tmp/ubuntu_1604/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/ubuntu_1604 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"     
+  - name: "Ubuntu 18.04"
+    dependencies: []
+    task:
+      jobs:
+      - name: "Build + Test"
+        commands:
+          - docker build -t probes/ubuntu_1804 docker/ubuntu_1804 
+          - docker run --rm -v $(pwd)/tmp/ubuntu_1804/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/ubuntu_1804 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"
+  - name: "Ubuntu 20.04"
+    dependencies: []
+    task:
+      jobs:
+      - name: "Build + Test"
+        commands:
+          - docker build -t probes/ubuntu_2004 docker/ubuntu_2004 
+          - docker run --rm -v $(pwd)/tmp/ubuntu_2004/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/ubuntu_2004 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"
