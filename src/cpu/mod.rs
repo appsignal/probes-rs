@@ -1,2 +1,2 @@
-pub mod proc;
 pub mod cgroup;
+pub mod proc;

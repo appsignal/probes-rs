@@ -28,6 +28,9 @@ Thinking of contributing to our Probes package? Awesome! 🚀
 Please follow our [Contributing guide][contributing-guide] in our
 documentation and follow our [Code of Conduct][coc].
 
+Running `cargo fmt` before contributing changes would reduce diffs for future
+contributions.
+
 Also, we would be very happy to send you Stroopwafles. Have look at everyone
 we send a package to so far on our [Stroopwafles page][waffles-page].
 
