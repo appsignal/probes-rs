@@ -1,6 +1,6 @@
 use std::error;
-use std::io;
 use std::fmt;
+use std::io;
 
 #[derive(Debug)]
 pub enum ProbeError {
@@ -10,7 +10,7 @@ pub enum ProbeError {
     /// Unexpected content in file or output
     UnexpectedContent(String),
     /// Input into a calculation function is invalid
-    InvalidInput(String)
+    InvalidInput(String),
 }
 
 impl fmt::Display for ProbeError {
@@ -18,7 +18,7 @@ impl fmt::Display for ProbeError {
         match *self {
             ProbeError::IO(ref err, ref path) => write!(f, "{} for {}", err, path),
             ProbeError::UnexpectedContent(ref err) => write!(f, "{}", err),
-            ProbeError::InvalidInput(ref err) => write!(f, "{}", err)
+            ProbeError::InvalidInput(ref err) => write!(f, "{}", err),
         }
     }
 }
@@ -26,9 +26,10 @@ impl fmt::Display for ProbeError {
 impl error::Error for ProbeError {
     fn description(&self) -> &str {
         match *self {
+            #[allow(deprecated)]
             ProbeError::IO(ref err, ref _path) => err.description(),
             ProbeError::UnexpectedContent(ref err) => err,
-            ProbeError::InvalidInput(ref err) => err
+            ProbeError::InvalidInput(ref err) => err,
         }
     }
 
@@ -36,7 +37,7 @@ impl error::Error for ProbeError {
         match *self {
             ProbeError::IO(ref err, ref _path) => Some(err),
             ProbeError::UnexpectedContent(_) => None,
-            ProbeError::InvalidInput(_) => None
+            ProbeError::InvalidInput(_) => None,
         }
     }
 }

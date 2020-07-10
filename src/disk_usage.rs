@@ -2,14 +2,14 @@ use super::Result;
 
 pub type DiskUsages = Vec<DiskUsage>;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct DiskUsage {
     pub filesystem: Option<String>,
     pub one_k_blocks: u64,
     pub one_k_blocks_used: u64,
     pub one_k_blocks_free: u64,
     pub used_percentage: u32,
-    pub mountpoint: String
+    pub mountpoint: String,
 }
 
 /// Read the current usage of all disks
@@ -20,9 +20,9 @@ pub fn read() -> Result<DiskUsages> {
 
 #[cfg(target_os = "linux")]
 mod os {
+    use super::super::{parse_u64, ProbeError, Result};
+    use super::{DiskUsage, DiskUsages};
     use std::process::Command;
-    use super::{DiskUsages,DiskUsage};
-    use super::super::{ProbeError,Result,parse_u64};
 
     #[inline]
     pub fn read() -> Result<DiskUsages> {
@@ -38,7 +38,7 @@ mod os {
 
     #[inline]
     pub fn parse_df_output(output: &str) -> Result<DiskUsages> {
-        let lines = output.split("\n");
+        let lines = output.split('\n');
 
         let mut out: DiskUsages = Vec::new();
 
@@ -56,16 +56,16 @@ mod os {
                 // Get filesystem
                 let filesystem = match segments[0] {
                     "none" => None,
-                    value => Some(value.to_string())
+                    value => Some(value.to_string()),
                 };
 
                 let disk = DiskUsage {
-                    filesystem: filesystem,
+                    filesystem,
                     one_k_blocks: parse_u64(segments[1])?,
                     one_k_blocks_used: parse_u64(segments[2])?,
                     one_k_blocks_free: parse_u64(segments[3])?,
                     used_percentage: parse_percentage_segment(&segments[4])?,
-                    mountpoint: segments[5].to_string()
+                    mountpoint: segments[5].to_string(),
                 };
 
                 out.push(disk);
@@ -77,22 +77,24 @@ mod os {
                         // Get filesystem
                         let filesystem = match previous_filesystem.as_ref() {
                             "none" => None,
-                            value => Some(value.to_string())
+                            value => Some(value.to_string()),
                         };
 
                         let disk = DiskUsage {
-                            filesystem: filesystem,
+                            filesystem,
                             one_k_blocks: parse_u64(segments[0])?,
                             one_k_blocks_used: parse_u64(segments[1])?,
                             one_k_blocks_free: parse_u64(segments[2])?,
                             used_percentage: parse_percentage_segment(&segments[3])?,
-                            mountpoint: segments[4].to_string()
+                            mountpoint: segments[4].to_string(),
                         };
 
                         out.push(disk);
-                    },
+                    }
                     None => {
-                        return Err(ProbeError::UnexpectedContent("filesystem expected on previous line".to_owned()))
+                        return Err(ProbeError::UnexpectedContent(
+                            "filesystem expected on previous line".to_owned(),
+                        ))
                     }
                 }
 
@@ -101,7 +103,9 @@ mod os {
             } else if segments_len == 0 {
                 // Skip
             } else {
-                return Err(ProbeError::UnexpectedContent("Incorrect number of segments".to_owned()))
+                return Err(ProbeError::UnexpectedContent(
+                    "Incorrect number of segments".to_owned(),
+                ));
             }
         }
 
@@ -111,7 +115,7 @@ mod os {
     #[inline]
     fn parse_percentage_segment(segment: &str) -> Result<u32> {
         // Strip % from the used value
-        let segment_minus_percentage = &segment[..segment.len() -1];
+        let segment_minus_percentage = &segment[..segment.len() - 1];
         segment_minus_percentage.parse().map_err(|_| {
             ProbeError::UnexpectedContent("Could not parse percentage segment".to_owned())
         })
@@ -121,10 +125,10 @@ mod os {
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 mod tests {
-    use std::path::Path;
     use super::super::file_to_string;
     use super::super::ProbeError;
     use super::DiskUsage;
+    use std::path::Path;
 
     #[test]
     fn test_read_disks() {
@@ -141,7 +145,7 @@ mod tests {
                 one_k_blocks_used: 2344444,
                 one_k_blocks_free: 74763732,
                 used_percentage: 4,
-                mountpoint: "/".to_owned()
+                mountpoint: "/".to_owned(),
             },
             DiskUsage {
                 filesystem: None,
@@ -149,7 +153,7 @@ mod tests {
                 one_k_blocks_used: 180,
                 one_k_blocks_free: 182996,
                 used_percentage: 1,
-                mountpoint: "/dev".to_owned()
+                mountpoint: "/dev".to_owned(),
             },
             DiskUsage {
                 filesystem: Some("/dev/sda1".to_owned()),
@@ -157,8 +161,8 @@ mod tests {
                 one_k_blocks_used: 17217,
                 one_k_blocks_free: 203533,
                 used_percentage: 8,
-                mountpoint: "/boot".to_owned()
-            }
+                mountpoint: "/boot".to_owned(),
+            },
         ];
 
         let df = file_to_string(Path::new("fixtures/linux/disk_usage/df")).unwrap();
@@ -172,7 +176,7 @@ mod tests {
         let df = file_to_string(Path::new("fixtures/linux/disk_usage/df_incomplete")).unwrap();
         match super::os::parse_df_output(&df) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 
@@ -181,7 +185,7 @@ mod tests {
         let df = file_to_string(Path::new("fixtures/linux/disk_usage/df_garbage")).unwrap();
         match super::os::parse_df_output(&df) {
             Err(ProbeError::UnexpectedContent(_)) => (),
-            r => panic!("Unexpected result: {:?}", r)
+            r => panic!("Unexpected result: {:?}", r),
         }
     }
 }
