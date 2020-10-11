@@ -34,6 +34,7 @@ impl DiskStatsMeasurement {
                     )))
                 }
             };
+
             stats.insert(
                 name.to_owned(),
                 DiskStat {
@@ -168,8 +169,9 @@ mod os {
             let line = line_result.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
             let segments: Vec<&str> = line.split_whitespace().collect();
 
-            // /proc/disktats has 14 fields, or 18 fields for kernel 4.18+
-            if segments.len() != 14 && segments.len() != 18 {
+            // /proc/diskstats has 14 fields, or 18 fields for kernel 4.18+, or 20 in kernel 5.5+
+            // https://www.kernel.org/doc/Documentation/ABI/testing/procfs-diskstats
+            if segments.len() != 14 && segments.len() != 18 && segments.len() != 20 {
                 return Err(ProbeError::UnexpectedContent(
                     "Incorrect number of segments".to_owned(),
                 ));
@@ -188,6 +190,7 @@ mod os {
                 time_spent_doing_ios_ms: parse_u64(segments[12])?,
                 weighted_time_spent_doing_ios_ms: parse_u64(segments[13])?,
             };
+
             out.stats.insert(segments[2].to_owned(), disk_stat);
         }
 
@@ -290,6 +293,50 @@ mod tests {
         assert_eq!(0, sda1.ios_currently_in_progress);
         assert_eq!(930, sda1.time_spent_doing_ios_ms);
         assert_eq!(1140, sda1.weighted_time_spent_doing_ios_ms);
+    }
+
+    #[test]
+    fn test_read_and_parse_proc_diskstats_kernel_5_5_plus() {
+        let measurement = read_and_parse_proc_diskstats(&Path::new(
+            "fixtures/linux/disk_stats/proc_diskstats_5_5",
+        ))
+        .unwrap();
+
+        assert!(measurement.precise_time_ns > 0);
+
+        assert_eq!(7, measurement.stats.len());
+
+        let xvda = measurement.stats.get("xvda").unwrap();
+
+        assert_eq!(11514, xvda.reads_completed_successfully);
+        assert_eq!(271, xvda.reads_merged);
+        assert_eq!(1204763, xvda.sectors_read);
+        assert_eq!(616838656, xvda.bytes_read());
+        assert_eq!(14486, xvda.time_spent_reading_ms);
+        assert_eq!(130975, xvda.writes_completed);
+        assert_eq!(18219, xvda.writes_merged);
+        assert_eq!(2798097, xvda.sectors_written);
+        assert_eq!(1432625664, xvda.bytes_written());
+        assert_eq!(178789, xvda.time_spent_writing_ms);
+        assert_eq!(0, xvda.ios_currently_in_progress);
+        assert_eq!(42381, xvda.time_spent_doing_ios_ms);
+        assert_eq!(112571, xvda.weighted_time_spent_doing_ios_ms);
+
+        let xvdf = measurement.stats.get("xvdf").unwrap();
+
+        assert_eq!(25663, xvdf.reads_completed_successfully);
+        assert_eq!(55, xvdf.reads_merged);
+        assert_eq!(810823, xvdf.sectors_read);
+        assert_eq!(415141376, xvdf.bytes_read());
+        assert_eq!(29159, xvdf.time_spent_reading_ms);
+        assert_eq!(33077, xvdf.writes_completed);
+        assert_eq!(21044, xvdf.writes_merged);
+        assert_eq!(1430229, xvdf.sectors_written);
+        assert_eq!(732277248, xvdf.bytes_written());
+        assert_eq!(37739, xvdf.time_spent_writing_ms);
+        assert_eq!(0, xvdf.ios_currently_in_progress);
+        assert_eq!(42594, xvdf.time_spent_doing_ios_ms);
+        assert_eq!(33450, xvdf.weighted_time_spent_doing_ios_ms);
     }
 
     #[test]
