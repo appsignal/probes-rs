@@ -79,7 +79,8 @@ pub fn read() -> Result<CgroupCpuMeasurement> {
 #[cfg(target_os = "linux")]
 mod os {
     use super::super::super::{
-        dir_exists, file_to_buf_reader, parse_u64, path_to_string, read_file_value_as_u64, Result,
+        dir_exists, file_to_buf_reader, parse_u64, path_to_string, precise_time_ns,
+        read_file_value_as_u64, Result,
     };
     use super::{CgroupCpuMeasurement, CgroupCpuStat};
     use crate::error::ProbeError;
@@ -102,7 +103,8 @@ mod os {
     }
 
     pub fn read_and_parse_sys_stat(path: &Path) -> Result<CgroupCpuMeasurement> {
-        let time = time::precise_time_ns();
+        let time = precise_time_ns();
+
         let reader = file_to_buf_reader(&path.join("cpuacct.stat"))?;
         let total_usage = read_file_value_as_u64(&path.join("cpuacct.usage"))?;
 

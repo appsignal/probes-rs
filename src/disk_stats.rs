@@ -148,19 +148,20 @@ pub fn read() -> Result<DiskStatsMeasurement> {
 
 #[cfg(target_os = "linux")]
 mod os {
-    use super::super::{file_to_buf_reader, parse_u64, path_to_string, ProbeError, Result};
+    use super::super::{
+        file_to_buf_reader, parse_u64, path_to_string, precise_time_ns, ProbeError, Result,
+    };
     use super::{DiskStat, DiskStatsMeasurement};
     use std::collections::HashMap;
     use std::io::BufRead;
     use std::path::Path;
-    use time;
 
     #[inline]
     pub fn read_and_parse_proc_diskstats(path: &Path) -> Result<DiskStatsMeasurement> {
         let reader = file_to_buf_reader(path)?;
 
         let mut out = DiskStatsMeasurement {
-            precise_time_ns: time::precise_time_ns(),
+            precise_time_ns: precise_time_ns(),
             stats: HashMap::new(),
         };
 
