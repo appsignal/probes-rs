@@ -147,7 +147,7 @@ pub fn read() -> Result<CpuMeasurement> {
 
 #[cfg(target_os = "linux")]
 mod os {
-    use super::super::super::{file_to_buf_reader, parse_u64, path_to_string, Result};
+    use super::super::super::{file_to_buf_reader, parse_u64, path_to_string, precise_time_ns, Result};
     use super::{CpuMeasurement, CpuStat};
     use crate::error::ProbeError;
     use std::io::BufRead;
@@ -162,7 +162,8 @@ mod os {
         let mut line = String::new();
         // columns: user nice system idle iowait irq softirq
         let mut reader = file_to_buf_reader(path)?;
-        let time = time::precise_time_ns();
+        let time = precise_time_ns();
+
         reader
             .read_line(&mut line)
             .map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
