@@ -79,7 +79,7 @@ mod os {
     use std::io::{self, BufRead};
     use std::path::Path;
 
-    use super::super::{file_to_buf_reader, parse_u64, path_to_string, precise_time_ns, Result};
+    use super::super::{file_to_buf_reader, parse_u64, path_to_string, Result};
     use super::{Interfaces, NetworkTraffic, NetworkTrafficMeasurement};
     use crate::error::ProbeError;
 
@@ -91,8 +91,7 @@ mod os {
     #[inline]
     pub fn read_and_parse_network(path: &Path) -> Result<NetworkTrafficMeasurement> {
         let reader = file_to_buf_reader(path)?;
-
-        let precise_time_ns = precise_time_ns();
+        let precise_time_ns = time::precise_time_ns();
 
         let line_result: io::Result<Vec<String>> = reader.lines().collect();
         let lines = line_result.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
@@ -168,7 +167,7 @@ mod os {
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 mod tests {
-    use super::super::{precise_time_ns, ProbeError};
+    use super::super::ProbeError;
     use super::{Interfaces, NetworkTraffic, NetworkTrafficMeasurement};
     use std::path::Path;
 
@@ -182,8 +181,7 @@ mod tests {
     fn test_read_and_parse_network() {
         let path = Path::new("fixtures/linux/network/proc_net_dev");
         let measurement = super::os::read_and_parse_network(&path).unwrap();
-
-        assert!(measurement.precise_time_ns < precise_time_ns());
+        assert!(measurement.precise_time_ns < time::precise_time_ns());
 
         let interfaces = measurement.interfaces;
         assert_eq!(3, interfaces.len());
