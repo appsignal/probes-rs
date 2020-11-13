@@ -3,9 +3,9 @@ name = "probes"
 version = "0.4.1"
 authors = ["Thijs Cadier <thijs@appsignal.com>",
            "Robert Beekman <robert@appsignal.com>",
+           "Timon Vonk <mail@timonv.nl>",
            "Adam Yeats <adam@appsignal.com>",
-           "Tom de Bruijn <tom@appsignal.com>",
-           "Timon Vonk <mail@timonv.nl>"]
+           "Tom de Bruijn <tom@appsignal.com>"]
 description = "Library to read out system stats from a machine running Unix"
 readme = "README.md"
 repository = "https://github.com/appsignal/probes-rs/"
@@ -15,4 +15,3 @@ edition = "2018"
 
 [dependencies]
 libc = "0.2"
-time = "0.1.34"

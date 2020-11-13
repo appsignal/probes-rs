@@ -1,5 +1,4 @@
 extern crate libc;
-extern crate time;
 
 pub mod cpu;
 pub mod disk_stats;
@@ -16,6 +15,7 @@ use std::io::BufRead;
 use std::io::Read;
 use std::path::Path;
 use std::result;
+use std::time::SystemTime;
 
 pub use crate::error::ProbeError;
 
@@ -94,6 +94,14 @@ fn read_file_value_as_u64(path: &Path) -> Result<u64> {
         .read_line(&mut line)
         .map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
     parse_u64(&line.trim())
+}
+
+#[inline]
+fn precise_time_ns() -> u64 {
+    return SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos() as u64;
 }
 
 #[cfg(test)]
