@@ -33,14 +33,6 @@ blocks:
         commands:
           - docker build -t probes/centos_8 docker/centos_8
           - docker run --rm -v $(pwd)/tmp/centos_8/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/centos_8 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"
-  - name: "Ubuntu 12.04"
-    dependencies: []
-    task:
-      jobs:
-      - name: "Build + Test"
-        commands:
-          - docker build -t probes/ubuntu_1204 docker/ubuntu_1204
-          - docker run --rm -v $(pwd)/tmp/ubuntu_1204/.cargo/registry:/root/.cargo/registry -v $(pwd):/probes -t probes/ubuntu_1204 /bin/bash -c "source /root/.cargo/env; cd /probes; rm -f Cargo.lock; cargo test"
   - name: "Ubuntu 14.04"
     dependencies: []
     task:
