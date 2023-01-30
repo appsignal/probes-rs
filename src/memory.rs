@@ -7,13 +7,13 @@ pub struct Memory {
     used: u64,
     buffers: u64,
     cached: u64,
+    shmem: u64,
     swap_total: u64,
     swap_free: u64,
     swap_used: u64,
 }
 
-const PROC_MEMORY_NUMBER_OF_FIELDS: usize = 6;
-const SYS_MEMORY_NUMBER_OF_FIELDS: usize = 1;
+const PROC_MEMORY_NUMBER_OF_FIELDS: usize = 7;
 
 impl Memory {
     /// Total amount of physical memory in Kb.
@@ -65,7 +65,7 @@ mod os {
 
     use super::super::{dir_exists, file_to_buf_reader, parse_u64};
     use super::super::{path_to_string, ProbeError, Result};
-    use super::{Memory, PROC_MEMORY_NUMBER_OF_FIELDS, SYS_MEMORY_NUMBER_OF_FIELDS};
+    use super::{Memory, PROC_MEMORY_NUMBER_OF_FIELDS};
 
     #[inline]
     pub fn read() -> Result<Memory> {
@@ -93,6 +93,7 @@ mod os {
             used: 0,
             buffers: 0,
             cached: 0,
+            shmem: 0,
             swap_total: 0,
             swap_free: 0,
             swap_used: 0,
@@ -134,6 +135,10 @@ mod os {
                     memory.swap_free = value;
                     1
                 }
+                "Shmem:" => {
+                    memory.shmem = value;
+                    1
+                }
                 _ => 0,
             };
 
@@ -165,6 +170,7 @@ mod os {
             used: 0,
             buffers: 0,
             cached: 0,
+            shmem: 0,
             swap_total: 0,
             swap_free: 0,
             swap_used: 0,
@@ -175,24 +181,21 @@ mod os {
         let used_memory =
             bytes_to_kilo_bytes(read_file_value_as_u64(&path.join("memory.usage_in_bytes"))?);
 
-        let mut fields_encountered = 0;
         let reader = file_to_buf_reader(&path.join("memory.stat"))?;
         for line_result in reader.lines() {
             let line = line_result.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
             let segments: Vec<&str> = line.split_whitespace().collect();
             let value = parse_u64(&segments[1])?;
 
-            fields_encountered += match segments[0] {
+            match segments[0] {
+                "shmem" => {
+                    memory.shmem = bytes_to_kilo_bytes(value);
+                }
                 "cache" => {
                     memory.cached = bytes_to_kilo_bytes(value);
-                    1
                 }
-                _ => 0,
+                _ => (),
             };
-
-            if fields_encountered == SYS_MEMORY_NUMBER_OF_FIELDS {
-                break;
-            }
         }
         memory.used = used_memory - memory.cached;
         memory.free = memory.total - memory.used;
@@ -241,7 +244,8 @@ mod tests {
 
     #[test]
     fn test_read_from_container() {
-        assert!(super::read_from_container().is_ok());
+        let result = super::read_from_container();
+        assert!(result.is_ok(), "{:?}", result);
     }
 
     #[test]
@@ -255,6 +259,7 @@ mod tests {
             used: 51824,
             buffers: 22820,
             cached: 176324,
+            shmem: 548,
             swap_total: 1101816,
             swap_free: 1100644,
             swap_used: 1172,
@@ -302,6 +307,7 @@ mod tests {
             used: 8600,
             buffers: 0,
             cached: 58928,
+            shmem: 0,
             swap_total: 1_488_000, // reported swap total - reported memory total
             swap_free: 1_055_528,
             swap_used: 432_472, // reported swap used - (reported memory used, including cache)
@@ -358,6 +364,7 @@ mod tests {
             used: 8600,
             buffers: 0,
             cached: 58928,
+            shmem: 0,
             swap_total: 0, // Reads 0 swap
             swap_free: 0,  // Reads 0 swap
             swap_used: 0,
