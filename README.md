@@ -46,6 +46,13 @@ we send a package to so far on our [Stroopwafles page][waffles-page].
 The tests on Travis are only run directly on that VM. Make sure to run
 the full test suite manually before every release.
 
+## Release
+
+- Update version in `Cargo.toml`.
+- Update `CHANGELOG.md` file.
+- Commit your changes.
+- Run `cargo publish`.
+
 [contributing-guide]: http://docs.appsignal.com/appsignal/contributing.html
 [coc]: https://docs.appsignal.com/appsignal/code-of-conduct.html
 [waffles-page]: https://appsignal.com/waffles
