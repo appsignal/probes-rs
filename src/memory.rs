@@ -44,6 +44,11 @@ impl Memory {
     pub fn swap_used(&self) -> u64 {
         self.swap_used
     }
+
+    /// Total amount of shared memory
+    pub fn shmem(&self) -> u64 {
+        self.shmem
+    }
 }
 
 /// Read the current memory status of the system.
