@@ -10,34 +10,50 @@ build:
 
 test:
 	docker run --rm \
-		-v $(PWD)/tmp/centos_7/.cargo/registry:/root/.cargo/registry \
+		-v $(PWD)/tmp/.cargo/registry/cache/centos_7:/root/.cargo/registry/cache \
+		-v $(PWD)/tmp/.cargo/registry/index:/root/.cargo/registry/index \
+		-v $(PWD)/tmp/.cargo/registry/src:/root/.cargo/registry/src \
 		-v $(PWD):/probes -t probes/centos_7 \
 		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
 	docker run --rm \
-		-v $(PWD)/tmp/centos_8/.cargo/registry:/root/.cargo/registry \
+		-v $(PWD)/tmp/.cargo/registry/cache/centos_8:/root/.cargo/registry/cache \
+		-v $(PWD)/tmp/.cargo/registry/index:/root/.cargo/registry/index \
+		-v $(PWD)/tmp/.cargo/registry/src:/root/.cargo/registry/src \
 		-v $(PWD):/probes -t probes/centos_8 \
 		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
 	docker run --rm \
-		-v $(PWD)/tmp/fedora_31/.cargo/registry:/root/.cargo/registry \
+		-v $(PWD)/tmp/.cargo/registry/cache/fedora_31:/root/.cargo/registry/cache \
+		-v $(PWD)/tmp/.cargo/registry/index:/root/.cargo/registry/index \
+		-v $(PWD)/tmp/.cargo/registry/src:/root/.cargo/registry/src \
 		-v $(PWD):/probes -t probes/fedora_31 \
 		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
 	docker run --rm \
-		-v $(PWD)/tmp/ubuntu_1404/.cargo/registry:/root/.cargo/registry \
+		-v $(PWD)/tmp/.cargo/registry/cache/ubuntu_1404:/root/.cargo/registry/cache \
+		-v $(PWD)/tmp/.cargo/registry/index:/root/.cargo/registry/index \
+		-v $(PWD)/tmp/.cargo/registry/src:/root/.cargo/registry/src \
 		-v $(PWD):/probes -t probes/ubuntu_1404 \
 		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
 	docker run --rm \
-		-v $(PWD)/tmp/ubuntu_1604/.cargo/registry:/root/.cargo/registry \
+		-v $(PWD)/tmp/.cargo/registry/cache/ubuntu_1604:/root/.cargo/registry/cache \
+		-v $(PWD)/tmp/.cargo/registry/index:/root/.cargo/registry/index \
+		-v $(PWD)/tmp/.cargo/registry/src:/root/.cargo/registry/src \
 		-v $(PWD):/probes -t probes/ubuntu_1604 \
 		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
 	docker run --rm \
-		-v $(PWD)/tmp/ubuntu_1804/.cargo/registry:/root/.cargo/registry \
+		-v $(PWD)/tmp/.cargo/registry/cache/ubuntu_1804:/root/.cargo/registry/cache \
+		-v $(PWD)/tmp/.cargo/registry/index:/root/.cargo/registry/index \
+		-v $(PWD)/tmp/.cargo/registry/src:/root/.cargo/registry/src \
 		-v $(PWD):/probes -t probes/ubuntu_1804 \
 		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
 	docker run --rm \
-		-v $(PWD)/tmp/ubuntu_2004/.cargo/registry:/root/.cargo/registry \
+		-v $(PWD)/tmp/.cargo/registry/cache/ubuntu_2004:/root/.cargo/registry/cache \
+		-v $(PWD)/tmp/.cargo/registry/index:/root/.cargo/registry/index \
+		-v $(PWD)/tmp/.cargo/registry/src:/root/.cargo/registry/src \
 		-v $(PWD):/probes -t probes/ubuntu_2004 \
 		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
 	docker run --rm \
-		-v $(PWD)/tmp/ubuntu_2204/.cargo/registry:/root/.cargo/registry \
+		-v $(PWD)/tmp/.cargo/registry/cache/ubuntu_2204:/root/.cargo/registry/cache \
+		-v $(PWD)/tmp/.cargo/registry/index:/root/.cargo/registry/index \
+		-v $(PWD)/tmp/.cargo/registry/src:/root/.cargo/registry/src \
 		-v $(PWD):/probes -t probes/ubuntu_2204 \
 		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
