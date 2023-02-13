@@ -76,3 +76,14 @@ test-all:
 		-v $(PWD)/tmp/.cargo/registry/src:/root/.cargo/registry/src \
 		-v $(PWD):/probes -t probes/ubuntu_2204 \
 		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
+
+test-cgroups-v1:
+	vagrant up cgroups_v1
+	vagrant ssh cgroups_v1 -c "cd /vagrant; sudo -E make build test"
+
+test-cgroups-v2:
+	vagrant up cgroups_v2
+	vagrant ssh cgroups_v2 -c "cd /vagrant; sudo -E make build test"
+
+test-cgroups: test-cgroups-v1 test-cgroups-v2
+	@echo 'Done! If desired, run `vagrant halt` to stop the machines, or `vagrant destroy -f` to destroy them.'
