@@ -303,7 +303,7 @@ mod tests {
 
     #[test]
     fn test_read_and_parse_sys_memory() {
-        let path = Path::new("fixtures/linux/sys/fs/cgroup/memory/");
+        let path = Path::new("fixtures/linux/sys/fs/cgroup_v1/memory/");
         let memory = super::os::read_and_parse_sys_memory(&path).unwrap();
 
         let expected = Memory {
@@ -333,7 +333,7 @@ mod tests {
 
     #[test]
     fn test_read_and_parse_sys_memory_incomplete() {
-        let path = Path::new("fixtures/linux/sys/fs/cgroup/memory_incomplete/");
+        let path = Path::new("fixtures/linux/sys/fs/cgroup_v1/memory_incomplete/");
         match super::os::read_and_parse_sys_memory(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r),
@@ -342,7 +342,7 @@ mod tests {
 
     #[test]
     fn test_read_and_parse_sys_memory_missing_files() {
-        let path = Path::new("fixtures/linux/sys/fs/cgroup/memory_missing_files/");
+        let path = Path::new("fixtures/linux/sys/fs/cgroup_v1/memory_missing_files/");
         match super::os::read_and_parse_sys_memory(&path) {
             Err(ProbeError::IO(_, _)) => (),
             r => panic!("Unexpected result: {:?}", r),
@@ -351,7 +351,7 @@ mod tests {
 
     #[test]
     fn test_read_and_parse_sys_memory_garbage() {
-        let path = Path::new("fixtures/linux/sys/fs/cgroup/memory_garbage/");
+        let path = Path::new("fixtures/linux/sys/fs/cgroup_v1/memory_garbage/");
         match super::os::read_and_parse_sys_memory(&path) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r),
@@ -360,7 +360,7 @@ mod tests {
 
     #[test]
     fn test_read_and_parse_sys_memory_no_swap() {
-        let path = Path::new("fixtures/linux/sys/fs/cgroup/memory_without_swap/");
+        let path = Path::new("fixtures/linux/sys/fs/cgroup_v1/memory_without_swap/");
         let memory = super::os::read_and_parse_sys_memory(&path).unwrap();
 
         let expected = Memory {

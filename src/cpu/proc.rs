@@ -147,7 +147,9 @@ pub fn read() -> Result<CpuMeasurement> {
 
 #[cfg(target_os = "linux")]
 mod os {
-    use super::super::super::{file_to_buf_reader, parse_u64, path_to_string, precise_time_ns, Result};
+    use super::super::super::{
+        file_to_buf_reader, parse_u64, path_to_string, precise_time_ns, Result,
+    };
     use super::{CpuMeasurement, CpuStat};
     use crate::error::ProbeError;
     use std::io::BufRead;
