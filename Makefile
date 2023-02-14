@@ -86,4 +86,5 @@ test-cgroups-v2:
 	vagrant ssh cgroups_v2 -c "cd /vagrant; sudo -E make build test"
 
 test-cgroups: test-cgroups-v1 test-cgroups-v2
+	@echo ''
 	@echo 'Done! If desired, run `vagrant halt` to stop the machines, or `vagrant destroy -f` to destroy them.'
