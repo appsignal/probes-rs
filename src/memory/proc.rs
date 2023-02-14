@@ -29,9 +29,9 @@ mod os {
             total: None,
             free: None,
             used: 0,
-            buffers: 0,
-            cached: 0,
-            shmem: 0,
+            buffers: None,
+            cached: None,
+            shmem: None,
             swap_total: None,
             swap_free: None,
             swap_used: None,
@@ -58,11 +58,11 @@ mod os {
                     1
                 }
                 "Buffers:" => {
-                    memory.buffers = value;
+                    memory.buffers = Some(value);
                     1
                 }
                 "Cached:" => {
-                    memory.cached = value;
+                    memory.cached = Some(value);
                     1
                 }
                 "SwapTotal:" => {
@@ -74,7 +74,7 @@ mod os {
                     1
                 }
                 "Shmem:" => {
-                    memory.shmem = value;
+                    memory.shmem = Some(value);
                     1
                 }
                 _ => 0,
@@ -94,7 +94,7 @@ mod os {
         // Total amount of free physical memory in Kb.
         // Includes buffers and caches, these will be freed
         // up by the OS when the memory is needed.
-        memory.free = Some(free + memory.buffers + memory.cached);
+        memory.free = Some(free + memory.buffers.unwrap_or(0) + memory.cached.unwrap_or(0));
         memory.used = memory.total.unwrap() - memory.free.unwrap();
         memory.swap_used = memory
             .swap_total
@@ -126,9 +126,9 @@ mod tests {
             total: Some(376072),
             free: Some(324248),
             used: 51824,
-            buffers: 22820,
-            cached: 176324,
-            shmem: 548,
+            buffers: Some(22820),
+            cached: Some(176324),
+            shmem: Some(548),
             swap_total: Some(1101816),
             swap_free: Some(1100644),
             swap_used: Some(1172),

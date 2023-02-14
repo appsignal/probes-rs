@@ -12,9 +12,9 @@ pub mod os {
             total: None,
             free: None,
             used: 0,
-            buffers: 0,
-            cached: 0,
-            shmem: 0,
+            buffers: None,
+            cached: None,
+            shmem: None,
             swap_total: None,
             swap_free: None,
             swap_used: None,
@@ -33,7 +33,7 @@ pub mod os {
             let value = parse_u64(&segments[1])?;
 
             if segments[0] == "shmem" {
-                memory.shmem = bytes_to_kilo_bytes(value);
+                memory.shmem = Some(bytes_to_kilo_bytes(value));
                 break;
             };
         }
@@ -87,9 +87,9 @@ mod tests {
             total: Some(512000), // 500mb
             free: Some(444472),  // total - used
             used: 67528,
-            buffers: 0,
-            cached: 0,
-            shmem: 0,
+            buffers: None,
+            cached: None,
+            shmem: Some(0),
             swap_total: Some(1_488_000), // reported swap total - reported memory total
             swap_free: Some(988_000),
             swap_used: Some(500_000), // reported swap used - (reported memory used, including cache)
@@ -147,9 +147,9 @@ mod tests {
             total: Some(512000), // 500mb
             free: Some(444472),  // total - used
             used: 67528,
-            buffers: 0,
-            cached: 0,
-            shmem: 0,
+            buffers: None,
+            cached: None,
+            shmem: Some(0),
             swap_total: None, // Reads 0 swap
             swap_free: None,  // Reads 0 swap
             swap_used: None,

@@ -12,9 +12,9 @@ pub mod os {
             total: None,
             free: None,
             used: 0,
-            buffers: 0,
-            cached: 0,
-            shmem: 0,
+            buffers: None,
+            cached: None,
+            shmem: None,
             swap_total: None,
             swap_free: None,
             swap_used: None,
@@ -33,19 +33,19 @@ pub mod os {
         for line_result in reader.lines() {
             let line = line_result.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
             let segments: Vec<&str> = line.split_whitespace().collect();
-            let value = parse_u64(&segments[1])?;
-
-            match segments[0] {
-                "shmem" => {
-                    memory.shmem = bytes_to_kilo_bytes(value);
-                }
-                "cache" => {
-                    memory.cached = bytes_to_kilo_bytes(value);
-                }
-                _ => (),
-            };
+            if let Ok(value) = parse_u64(&segments[1]) {
+                match segments[0] {
+                    "shmem" => {
+                        memory.shmem = Some(bytes_to_kilo_bytes(value));
+                    }
+                    "cache" => {
+                        memory.cached = Some(bytes_to_kilo_bytes(value));
+                    }
+                    _ => (),
+                };
+            }
         }
-        memory.used = used_memory - memory.cached;
+        memory.used = used_memory - memory.cached.unwrap_or(0);
         memory.free = memory.total.map(|total| total - memory.used);
 
         memory.swap_total = match read_file_value_as_u64(&path.join("memory.memsw.limit_in_bytes"))
@@ -97,9 +97,9 @@ mod tests {
             total: Some(512000), // 500mb
             free: Some(503400),  // total - used
             used: 8600,
-            buffers: 0,
-            cached: 58928,
-            shmem: 0,
+            buffers: None,
+            cached: Some(58928),
+            shmem: None,
             swap_total: Some(1_488_000), // reported swap total - reported memory total
             swap_free: Some(1_055_528),
             swap_used: Some(432_472), // reported swap used - (reported memory used, including cache)
@@ -157,9 +157,9 @@ mod tests {
             total: Some(512000), // 500mb
             free: Some(503400),  // total - used
             used: 8600,
-            buffers: 0,
-            cached: 58928,
-            shmem: 0,
+            buffers: None,
+            cached: Some(58928),
+            shmem: None,
             swap_total: None, // Reads 0 swap
             swap_free: None,  // Reads 0 swap
             swap_used: None,

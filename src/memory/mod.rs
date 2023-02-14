@@ -8,9 +8,9 @@ pub struct Memory {
     total: Option<u64>,
     free: Option<u64>,
     used: u64,
-    buffers: u64,
-    cached: u64,
-    shmem: u64,
+    buffers: Option<u64>,
+    cached: Option<u64>,
+    shmem: Option<u64>,
     swap_total: Option<u64>,
     swap_free: Option<u64>,
     swap_used: Option<u64>,
@@ -47,7 +47,7 @@ impl Memory {
     }
 
     /// Total amount of shared memory
-    pub fn shmem(&self) -> u64 {
+    pub fn shmem(&self) -> Option<u64> {
         self.shmem
     }
 }

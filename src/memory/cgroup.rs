@@ -6,7 +6,7 @@ use super::Memory;
 use crate::{dir_exists, ProbeError, Result};
 
 /// Read the current memory status of the container.
-// #[cfg(target_os = "linux")]
+#[cfg(target_os = "linux")]
 pub fn read_from_container() -> Result<Memory> {
     let v2_sys_fs_dir = Path::new("/sys/fs/cgroup");
     let v2_sys_fs_file = v2_sys_fs_dir.join("memory.current");
