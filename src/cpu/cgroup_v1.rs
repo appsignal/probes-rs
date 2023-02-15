@@ -1,67 +1,64 @@
+use super::cgroup::{CgroupCpuMeasurement, CgroupCpuStat};
+use crate::error::ProbeError;
+use crate::{
+    file_to_buf_reader, parse_u64, path_to_string, precise_time_ns, read_file_value_as_u64, Result,
+};
+use std::io::BufRead;
+use std::path::Path;
+
+const CPU_SYS_V1_NUMBER_OF_FIELDS: usize = 2;
+
 #[cfg(target_os = "linux")]
-pub mod os {
-    use super::super::cgroup::{CgroupCpuMeasurement, CgroupCpuStat};
-    use crate::error::ProbeError;
-    use crate::{
-        file_to_buf_reader, parse_u64, path_to_string, precise_time_ns, read_file_value_as_u64,
-        Result,
+pub fn read_and_parse_v1_sys_stat(path: &Path) -> Result<CgroupCpuMeasurement> {
+    let time = precise_time_ns();
+
+    let reader = file_to_buf_reader(&path.join("cpuacct.stat"))?;
+    let total_usage = read_file_value_as_u64(&path.join("cpuacct.usage"))?;
+
+    let mut cpu = CgroupCpuStat {
+        total_usage,
+        user: 0,
+        system: 0,
     };
-    use std::io::BufRead;
-    use std::path::Path;
 
-    const CPU_SYS_V1_NUMBER_OF_FIELDS: usize = 2;
-
-    pub fn read_and_parse_v1_sys_stat(path: &Path) -> Result<CgroupCpuMeasurement> {
-        let time = precise_time_ns();
-
-        let reader = file_to_buf_reader(&path.join("cpuacct.stat"))?;
-        let total_usage = read_file_value_as_u64(&path.join("cpuacct.usage"))?;
-
-        let mut cpu = CgroupCpuStat {
-            total_usage,
-            user: 0,
-            system: 0,
-        };
-
-        let mut fields_encountered = 0;
-        for line in reader.lines() {
-            let line = line.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
-            let segments: Vec<&str> = line.split_whitespace().collect();
-            let value = parse_u64(&segments[1])?;
-            fields_encountered += match segments[0] {
-                "user" => {
-                    cpu.user = value * 10_000_000;
-                    1
-                }
-                "system" => {
-                    cpu.system = value * 10_000_000;
-                    1
-                }
-                _ => 0,
-            };
-
-            if fields_encountered == CPU_SYS_V1_NUMBER_OF_FIELDS {
-                break;
+    let mut fields_encountered = 0;
+    for line in reader.lines() {
+        let line = line.map_err(|e| ProbeError::IO(e, path_to_string(path)))?;
+        let segments: Vec<&str> = line.split_whitespace().collect();
+        let value = parse_u64(&segments[1])?;
+        fields_encountered += match segments[0] {
+            "user" => {
+                cpu.user = value * 10_000_000;
+                1
             }
-        }
-
-        if fields_encountered != CPU_SYS_V1_NUMBER_OF_FIELDS {
-            return Err(ProbeError::UnexpectedContent(
-                "Did not encounter all expected fields".to_owned(),
-            ));
-        }
-        let measurement = CgroupCpuMeasurement {
-            precise_time_ns: time,
-            stat: cpu,
+            "system" => {
+                cpu.system = value * 10_000_000;
+                1
+            }
+            _ => 0,
         };
-        Ok(measurement)
+
+        if fields_encountered == CPU_SYS_V1_NUMBER_OF_FIELDS {
+            break;
+        }
     }
+
+    if fields_encountered != CPU_SYS_V1_NUMBER_OF_FIELDS {
+        return Err(ProbeError::UnexpectedContent(
+            "Did not encounter all expected fields".to_owned(),
+        ));
+    }
+    let measurement = CgroupCpuMeasurement {
+        precise_time_ns: time,
+        stat: cpu,
+    };
+    Ok(measurement)
 }
 
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 mod test {
-    use super::os::read_and_parse_v1_sys_stat;
+    use super::read_and_parse_v1_sys_stat;
     use crate::error::ProbeError;
     use std::path::Path;
 

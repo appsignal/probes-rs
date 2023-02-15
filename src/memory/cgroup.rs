@@ -5,9 +5,9 @@ use crate::{dir_exists, ProbeError, Result};
 
 /// Read the current memory status of the container.
 #[cfg(target_os = "linux")]
-pub fn read_from_container() -> Result<Memory> {
-    use super::cgroup_v1::os::read_and_parse_v1_sys_memory;
-    use super::cgroup_v2::os::read_and_parse_v2_sys_memory;
+pub fn read() -> Result<Memory> {
+    use super::cgroup_v1::read_and_parse_v1_sys_memory;
+    use super::cgroup_v2::read_and_parse_v2_sys_memory;
 
     let v2_sys_fs_dir = Path::new("/sys/fs/cgroup");
     let v2_sys_fs_file = v2_sys_fs_dir.join("memory.current");
@@ -33,6 +33,6 @@ pub fn read_from_container() -> Result<Memory> {
 mod tests {
     #[test]
     fn test_read_from_container() {
-        assert!(super::read_from_container().is_ok());
+        assert!(super::read().is_ok());
     }
 }
