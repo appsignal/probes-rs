@@ -38,12 +38,9 @@ pub fn read_and_parse_v2_sys_memory(path: &Path) -> Result<Memory> {
 
     memory.free = memory.total.map(|total| total - memory.used);
 
-    memory.swap_total = match read_file_value_as_u64(&path.join("memory.swap.max")) {
-        Ok(value) => memory
-            .total
-            .map(|total| bytes_to_kilo_bytes(value).saturating_sub(total)),
-        Err(_) => None,
-    };
+    memory.swap_total = read_file_value_as_u64(&path.join("memory.swap.max"))
+        .ok()
+        .map(bytes_to_kilo_bytes);
     memory.swap_used = read_file_value_as_u64(&path.join("memory.swap.current"))
         .ok()
         .map(bytes_to_kilo_bytes);
@@ -74,9 +71,9 @@ mod tests {
             buffers: None,
             cached: None,
             shmem: Some(0),
-            swap_total: Some(1_488_000), // reported swap total - reported memory total
-            swap_free: Some(988_000),
-            swap_used: Some(500_000), // reported swap used - (reported memory used, including cache)
+            swap_total: Some(2000000),  // reported swap total
+            swap_free: Some(1_500_000), // swap total - swap used
+            swap_used: Some(500_000),   // reported swap used
         };
         assert_eq!(expected, memory);
         assert_eq!(memory.total.unwrap(), memory.used + memory.free.unwrap());
