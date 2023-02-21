@@ -104,6 +104,10 @@ fn precise_time_ns() -> u64 {
         .as_nanos() as u64;
 }
 
+fn bytes_to_kilo_bytes(bytes: u64) -> u64 {
+    bytes.checked_div(1024).unwrap_or(0)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::error::ProbeError;

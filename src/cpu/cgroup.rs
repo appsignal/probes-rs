@@ -1,4 +1,6 @@
-use super::super::{calculate_time_difference, time_adjusted, Result};
+use crate::error::ProbeError;
+use crate::{calculate_time_difference, dir_exists, time_adjusted, Result};
+use std::path::Path;
 
 /// Measurement of cpu stats at a certain time
 #[derive(Debug, PartialEq)]
@@ -73,35 +75,24 @@ pub struct CgroupCpuStatPercentages {
 /// Read the current CPU stats of the container.
 #[cfg(target_os = "linux")]
 pub fn read() -> Result<CgroupCpuMeasurement> {
-    os::read()
-}
+    use super::cgroup_v1::read_and_parse_v1_sys_stat;
+    use super::cgroup_v2::read_and_parse_v2_sys_stat;
 
-#[cfg(target_os = "linux")]
-mod os {
-    use super::super::cgroup_v1::os::read_and_parse_v1_sys_stat;
-    use super::super::cgroup_v2::os::read_and_parse_v2_sys_stat;
-    use super::CgroupCpuMeasurement;
-    use crate::error::ProbeError;
-    use crate::{dir_exists, Result};
-    use std::path::Path;
-
-    pub fn read() -> Result<CgroupCpuMeasurement> {
-        let v2_sys_fs_file = Path::new("/sys/fs/cgroup/cpu.stat");
-        if v2_sys_fs_file.exists() {
-            return read_and_parse_v2_sys_stat(&v2_sys_fs_file);
-        }
-
-        let v1_sys_fs_dir = Path::new("/sys/fs/cgroup/cpuacct/");
-        if dir_exists(v1_sys_fs_dir) {
-            return read_and_parse_v1_sys_stat(&v1_sys_fs_dir);
-        }
-
-        Err(ProbeError::UnexpectedContent(format!(
-            "Directory `{}` and file `{}` not found",
-            v1_sys_fs_dir.to_str().unwrap_or("unknown path"),
-            v2_sys_fs_file.to_str().unwrap_or("unknown path")
-        )))
+    let v2_sys_fs_file = Path::new("/sys/fs/cgroup/cpu.stat");
+    if v2_sys_fs_file.exists() {
+        return read_and_parse_v2_sys_stat(&v2_sys_fs_file);
     }
+
+    let v1_sys_fs_dir = Path::new("/sys/fs/cgroup/cpuacct/");
+    if dir_exists(v1_sys_fs_dir) {
+        return read_and_parse_v1_sys_stat(&v1_sys_fs_dir);
+    }
+
+    Err(ProbeError::UnexpectedContent(format!(
+        "Directory `{}` and file `{}` not found",
+        v1_sys_fs_dir.to_str().unwrap_or("unknown path"),
+        v2_sys_fs_file.to_str().unwrap_or("unknown path")
+    )))
 }
 
 #[cfg(test)]
