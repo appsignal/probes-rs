@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- Add support for cgroups v2 in CPU and memory metrics
+- Change memory metrics struct to allow for values being optional
+
 ## 0.4.3
 
 - Add shared memory metric function `Memory.shmem()`.
