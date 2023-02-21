@@ -27,6 +27,14 @@ test:
 		-v $(PWD):/probes -t probes/ubuntu_2204 \
 		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
 
+publish:
+	docker run --rm \
+		-v $(PWD)/tmp/.cargo/registry/cache/ubuntu_2204:/root/.cargo/registry/cache \
+		-v $(PWD)/tmp/.cargo/registry/index:/root/.cargo/registry/index \
+		-v $(PWD)/tmp/.cargo/registry/src:/root/.cargo/registry/src \
+		-v $(PWD):/probes -it probes/ubuntu_2204 \
+		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo login; cargo publish"
+
 test-all:
 	docker run --rm \
 		-v $(PWD)/tmp/.cargo/registry/cache/centos_7:/root/.cargo/registry/cache \
