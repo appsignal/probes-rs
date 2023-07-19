@@ -106,6 +106,7 @@ impl CpuStat {
     /// Calculate the weight of the various components in percentages
     pub fn in_percentages(&self) -> CpuStatPercentages {
         CpuStatPercentages {
+            total_usage: self.percentage_of_total(self.total - self.idle),
             user: self.percentage_of_total(self.user),
             nice: self.percentage_of_total(self.nice),
             system: self.percentage_of_total(self.system),
@@ -127,6 +128,7 @@ impl CpuStat {
 /// Cpu stats converted to percentages
 #[derive(Debug, PartialEq)]
 pub struct CpuStatPercentages {
+    pub total_usage: f32,
     pub user: f32,
     pub nice: f32,
     pub system: f32,
@@ -494,6 +496,7 @@ mod test {
         };
 
         let expected = CpuStatPercentages {
+            total_usage: 90.0,
             user: 45.0,
             nice: 7.0,
             system: 10.0,
@@ -526,6 +529,7 @@ mod test {
         };
 
         let expected = CpuStatPercentages {
+            total_usage: 90.0,
             user: 44.5,
             nice: 6.5,
             system: 10.0,

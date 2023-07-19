@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1
+
+- Add support for CPU total usage for `/proc` based systems (VMs).
+
 ## 0.5.0
 
 - Add support for cgroups v2 in CPU and memory metrics
