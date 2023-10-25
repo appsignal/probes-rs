@@ -80,7 +80,8 @@ pub fn read() -> Result<CgroupCpuMeasurement> {
 
     let v2_sys_fs_file = Path::new("/sys/fs/cgroup/cpu.stat");
     if v2_sys_fs_file.exists() {
-        return read_and_parse_v2_sys_stat(&v2_sys_fs_file);
+        let v2_sys_fs_cpu_max_file = Path::new("/sys/fs/cgroup/cpu.max");
+        return read_and_parse_v2_sys_stat(&v2_sys_fs_file, v2_sys_fs_cpu_max_file);
     }
 
     let v1_sys_fs_dir = Path::new("/sys/fs/cgroup/cpuacct/");
