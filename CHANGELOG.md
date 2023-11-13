@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+
+- Normalize CPU usage percentages for cgroups v2 systems
+
 ## 0.5.1
 
 - Add support for CPU total usage for `/proc` based systems (VMs).
