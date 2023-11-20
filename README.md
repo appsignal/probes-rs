@@ -51,6 +51,7 @@ the full test suite manually before every release.
 - Update version in `Cargo.toml`.
 - Update `CHANGELOG.md` file.
 - Commit your changes.
+- Tag the release: `git tag v#.#.#`.
 - Run `cargo publish`.
 
 [contributing-guide]: http://docs.appsignal.com/appsignal/contributing.html
