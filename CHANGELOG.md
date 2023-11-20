@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Support disk usage reporting (using `df`) on Alpine Linux.
+
 ## 0.5.2
 
 - Normalize CPU usage percentages for cgroups v2 systems

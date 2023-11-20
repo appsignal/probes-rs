@@ -41,7 +41,13 @@ mod os {
     #[inline]
     pub fn read() -> Result<Vec<DiskUsage>> {
         let mut out: Vec<DiskUsage> = Vec::new();
-        let local_out = disk_fs_local_raw()?;
+        let local_out = match disk_fs_local_raw(Some(&["--local"])) {
+            Ok(o) => o,
+            Err(_) => match disk_fs_local_raw(None) {
+                Ok(o) => o,
+                Err(e) => return Err(e),
+            },
+        };
 
         let parsed = parse_df_output(&local_out)?;
 
@@ -161,11 +167,15 @@ mod os {
     }
 
     #[inline]
-    fn disk_fs_local_raw() -> Result<String> {
-        let output = Command::new("df")
-            .arg("-l")
+    fn disk_fs_local_raw(options: Option<&[&str]>) -> Result<String> {
+        let mut cmd = Command::new("df");
+        if let Some(opts) = options {
+            cmd.args(opts);
+        }
+
+        let output = cmd
             .output()
-            .map_err(|e| ProbeError::IO(e, "df -l".to_owned()))?
+            .map_err(|e| ProbeError::IO(e, format!("df {}", options.unwrap_or(&[]).join(" "))))?
             .stdout;
 
         Ok(String::from_utf8_lossy(&output).to_string())
