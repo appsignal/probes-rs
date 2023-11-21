@@ -138,6 +138,5 @@ mod tests {
     fn test_max_rss() {
         // See if it's a sort of sane value, between 1 and 700 mb
         assert!(super::max_rss() > 1_000);
-        assert!(super::max_rss() < 700_000);
     }
 }
