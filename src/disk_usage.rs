@@ -41,7 +41,13 @@ mod os {
     #[inline]
     pub fn read() -> Result<Vec<DiskUsage>> {
         let mut out: Vec<DiskUsage> = Vec::new();
-        let local_out = disk_fs_local_raw()?;
+        let local_out = match disk_fs_local_raw(Some(&["--local"])) {
+            Ok(o) => o,
+            Err(_) => match disk_fs_local_raw(None) {
+                Ok(o) => o,
+                Err(e) => return Err(e),
+            },
+        };
 
         let parsed = parse_df_output(&local_out)?;
 
@@ -63,18 +69,25 @@ mod os {
 
     #[inline]
     pub fn read_inodes() -> Result<Vec<DiskInodeUsage>> {
-        let mut out: Vec<DiskInodeUsage> = Vec::new();
         let inodes_out = disk_fs_inodes_raw()?;
+        parse_df_inodes_output(parse_df_output(&inodes_out)?)
+    }
 
-        let parsed = parse_df_output(&inodes_out)?;
+    #[inline]
+    pub fn parse_df_inodes_output(parsed_segments: Vec<Vec<&str>>) -> Result<Vec<DiskInodeUsage>> {
+        let mut out: Vec<DiskInodeUsage> = Vec::new();
 
-        for segment in parsed.iter() {
+        for segment in parsed_segments.iter() {
+            let iuse_percentage = segment[4];
+            if iuse_percentage == "-" {
+                continue;
+            }
             let usage = DiskInodeUsage {
                 filesystem: parse_filesystem(segment[0]),
                 inodes: parse_u64(segment[1])?,
                 iused: parse_u64(segment[2])?,
                 ifree: parse_u64(segment[3])?,
-                iused_percentage: parse_percentage_segment(segment[4])?,
+                iused_percentage: parse_percentage_segment(iuse_percentage)?,
                 mountpoint: segment[5].to_string(),
             };
 
@@ -161,11 +174,15 @@ mod os {
     }
 
     #[inline]
-    fn disk_fs_local_raw() -> Result<String> {
-        let output = Command::new("df")
-            .arg("-l")
+    fn disk_fs_local_raw(options: Option<&[&str]>) -> Result<String> {
+        let mut cmd = Command::new("df");
+        if let Some(opts) = options {
+            cmd.args(opts);
+        }
+
+        let output = cmd
             .output()
-            .map_err(|e| ProbeError::IO(e, "df -l".to_owned()))?
+            .map_err(|e| ProbeError::IO(e, format!("df {}", options.unwrap_or(&[]).join(" "))))?
             .stdout;
 
         Ok(String::from_utf8_lossy(&output).to_string())
@@ -236,5 +253,26 @@ mod tests {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r),
         }
+    }
+
+    #[test]
+    fn test_parse_df_i_output_dash_percentage() {
+        let df =
+            file_to_string(Path::new("fixtures/linux/disk_usage/df_i_dash_percentage")).unwrap();
+        let disks =
+            super::os::parse_df_inodes_output(super::os::parse_df_output(&df).unwrap()).unwrap();
+
+        // Does not include the mountpoint with a dash (-) as a percentage
+        assert_eq!(
+            disks,
+            vec![super::DiskInodeUsage {
+                filesystem: Some("overlay".to_string()),
+                inodes: 2097152,
+                iused: 122591,
+                ifree: 1974561,
+                iused_percentage: 6,
+                mountpoint: "/".to_string(),
+            }]
+        );
     }
 }
