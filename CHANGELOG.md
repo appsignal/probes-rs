@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Support disk usage reporting (using `df`) on Alpine Linux.
+- Don't report inodes for mountpoints that report no usage percentage.
 
 ## 0.5.2
 

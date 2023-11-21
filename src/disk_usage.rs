@@ -69,18 +69,25 @@ mod os {
 
     #[inline]
     pub fn read_inodes() -> Result<Vec<DiskInodeUsage>> {
-        let mut out: Vec<DiskInodeUsage> = Vec::new();
         let inodes_out = disk_fs_inodes_raw()?;
+        parse_df_inodes_output(parse_df_output(&inodes_out)?)
+    }
 
-        let parsed = parse_df_output(&inodes_out)?;
+    #[inline]
+    pub fn parse_df_inodes_output(parsed_segments: Vec<Vec<&str>>) -> Result<Vec<DiskInodeUsage>> {
+        let mut out: Vec<DiskInodeUsage> = Vec::new();
 
-        for segment in parsed.iter() {
+        for segment in parsed_segments.iter() {
+            let iuse_percentage = segment[4];
+            if iuse_percentage == "-" {
+                continue;
+            }
             let usage = DiskInodeUsage {
                 filesystem: parse_filesystem(segment[0]),
                 inodes: parse_u64(segment[1])?,
                 iused: parse_u64(segment[2])?,
                 ifree: parse_u64(segment[3])?,
-                iused_percentage: parse_percentage_segment(segment[4])?,
+                iused_percentage: parse_percentage_segment(iuse_percentage)?,
                 mountpoint: segment[5].to_string(),
             };
 
@@ -246,5 +253,26 @@ mod tests {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r),
         }
+    }
+
+    #[test]
+    fn test_parse_df_i_output_dash_percentage() {
+        let df =
+            file_to_string(Path::new("fixtures/linux/disk_usage/df_i_dash_percentage")).unwrap();
+        let disks =
+            super::os::parse_df_inodes_output(super::os::parse_df_output(&df).unwrap()).unwrap();
+
+        // Does not include the mountpoint with a dash (-) as a percentage
+        assert_eq!(
+            disks,
+            vec![super::DiskInodeUsage {
+                filesystem: Some("overlay".to_string()),
+                inodes: 2097152,
+                iused: 122591,
+                ifree: 1974561,
+                iused_percentage: 6,
+                mountpoint: "/".to_string(),
+            }]
+        );
     }
 }
