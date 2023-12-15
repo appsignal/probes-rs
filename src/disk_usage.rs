@@ -224,6 +224,32 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_df_output_alpine() {
+        let df =
+            file_to_string(Path::new("fixtures/linux/disk_usage/df_alpine")).unwrap();
+        let disks = super::os::parse_df_output(&df).unwrap();
+
+        let expected = vec![
+            vec!["overlay", "98831908", "12898756", "85916768", "13%", "/"],
+            vec!["tmpfs", "65536", "0", "65536", "0%", "/dev"],
+            vec!["/dev/sda1", "98831908", "12898756", "85916768", "13%", "/etc/hosts"],
+            vec!["/dev/sda1", "98831908", "12898756", "85916768", "13%", "/dev/termination-log"],
+            vec!["/dev/sda1", "98831908", "12898756", "85916768", "13%", "/etc/hostname"],
+            vec!["/dev/sda1", "98831908", "12898756", "85916768", "13%", "/etc/resolv.conf"],
+            vec!["shm", "65536", "0", "65536", "0%", "/dev/shm"],
+            vec!["tmpfs", "51200", "5084", "46116", "10%", "/tmp"],
+            vec!["tmpfs", "768000", "72", "767928", "0%", "/opt/app/run/secrets"],
+            vec!["tmpfs", "8195152", "0", "8195152", "0%", "/proc/acpi"],
+            vec!["tmpfs", "65536", "0", "65536", "0%", "/proc/kcore"],
+            vec!["tmpfs", "65536", "0", "65536", "0%", "/proc/keys"],
+            vec!["tmpfs", "65536", "0", "65536", "0%", "/proc/timer_list"],
+            vec!["tmpfs", "8195152", "0", "8195152", "0%", "/proc/scsi"],
+            vec!["tmpfs", "8195152", "0", "8195152", "0%", "/sys/firmware"]
+        ];
+        assert_eq!(expected, disks);
+    }
+
+    #[test]
     fn test_parse_df_i_output() {
         let expected = vec![
             vec!["overlay", "2097152", "122591", "1974561", "6%", "/"],

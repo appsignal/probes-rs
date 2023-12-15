@@ -1,0 +1,16 @@
+Filesystem           1K-blocks      Used Available Use% Mounted on
+overlay               98831908  12898756  85916768  13% /
+tmpfs                    65536         0     65536   0% /dev
+/dev/sda1             98831908  12898756  85916768  13% /etc/hosts
+/dev/sda1             98831908  12898756  85916768  13% /dev/termination-log
+/dev/sda1             98831908  12898756  85916768  13% /etc/hostname
+/dev/sda1             98831908  12898756  85916768  13% /etc/resolv.conf
+shm                      65536         0     65536   0% /dev/shm
+tmpfs                    51200      5084     46116  10% /tmp
+tmpfs                   768000        72    767928   0% /opt/app/run/secrets
+tmpfs                  8195152         0   8195152   0% /proc/acpi
+tmpfs                    65536         0     65536   0% /proc/kcore
+tmpfs                    65536         0     65536   0% /proc/keys
+tmpfs                    65536         0     65536   0% /proc/timer_list
+tmpfs                  8195152         0   8195152   0% /proc/scsi
+tmpfs                  8195152         0   8195152   0% /sys/firmware
