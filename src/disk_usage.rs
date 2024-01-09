@@ -182,10 +182,19 @@ mod os {
 
         let output = cmd
             .output()
-            .map_err(|e| ProbeError::IO(e, format!("df {}", options.unwrap_or(&[]).join(" "))))?
-            .stdout;
+            .map_err(|e| ProbeError::IO(e, format!("df {}", options.unwrap_or(&[]).join(" "))))?;
+        let stdout = output.stdout;
+        let status = output.status;
 
-        Ok(String::from_utf8_lossy(&output).to_string())
+        if status.success() {
+            Ok(String::from_utf8_lossy(&stdout).to_string())
+        } else {
+            Err(ProbeError::StatusFailure(format!(
+                "Command `df` returned failure exit code '{:?}': df {}",
+                status.code(),
+                options.unwrap_or(&[]).join(" ")
+            )))
+        }
     }
 }
 

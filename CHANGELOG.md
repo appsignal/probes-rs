@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.4
+
+- Fix disk usage returning a Vec with no entries on Alpine Linux when the `df --local` command fails.
+
 ## 0.5.3
 
 - Support disk usage reporting (using `df`) on Alpine Linux.
