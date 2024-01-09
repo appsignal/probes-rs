@@ -11,6 +11,8 @@ pub enum ProbeError {
     UnexpectedContent(String),
     /// Input into a calculation function is invalid
     InvalidInput(String),
+    /// Command failed
+    StatusFailure(String),
 }
 
 impl fmt::Display for ProbeError {
@@ -19,6 +21,7 @@ impl fmt::Display for ProbeError {
             ProbeError::IO(ref err, ref path) => write!(f, "{} for {}", err, path),
             ProbeError::UnexpectedContent(ref err) => write!(f, "{}", err),
             ProbeError::InvalidInput(ref err) => write!(f, "{}", err),
+            ProbeError::StatusFailure(ref err) => write!(f, "{}", err),
         }
     }
 }
@@ -30,6 +33,7 @@ impl error::Error for ProbeError {
             ProbeError::IO(ref err, ref _path) => err.description(),
             ProbeError::UnexpectedContent(ref err) => err,
             ProbeError::InvalidInput(ref err) => err,
+            ProbeError::StatusFailure(ref err) => err,
         }
     }
 
@@ -38,6 +42,7 @@ impl error::Error for ProbeError {
             ProbeError::IO(ref err, ref _path) => Some(err),
             ProbeError::UnexpectedContent(_) => None,
             ProbeError::InvalidInput(_) => None,
+            ProbeError::StatusFailure(_) => None,
         }
     }
 }
