@@ -14,17 +14,17 @@ pub fn read_and_parse_v2_sys_stat(
     // If the cpu.max file exists, we can use it to calculate the number of CPUs
     // in the cgroup. It's also required that the first value is not set to "max",
     // otherwise we can't calculate the number of CPUs.
-    let mut cpu_count = 0;
+    let mut cpu_count = 0.0;
     if cpu_max_path.exists() {
         let reader = file_to_buf_reader(&cpu_max_path)?;
         let mut lines = reader.lines();
         if let Some(Ok(line)) = lines.next() {
             let segments: Vec<&str> = line.split_whitespace().collect();
             let max = segments[0];
-            let period = parse_u64(&segments[1])?;
 
             if max != "max" {
-                cpu_count = parse_u64(&max)? / period;
+                let period = parse_u64(&segments[1])? as f64;
+                cpu_count = parse_u64(&max)? as f64 / period;
             }
         }
     }
@@ -47,8 +47,8 @@ pub fn read_and_parse_v2_sys_stat(
             "usage_usec" => {
                 cpu.total_usage = value * 1_000;
 
-                if cpu_count > 0 {
-                    cpu.total_usage /= cpu_count;
+                if cpu_count > 0.0 {
+                    cpu.total_usage = (cpu.total_usage as f64 / cpu_count).round() as u64;
                 }
                 1
             }
@@ -121,7 +121,7 @@ mod test {
         )
         .unwrap();
         let cpu = measurement.stat;
-        assert_eq!(cpu.total_usage, 171462000);
+        assert_eq!(cpu.total_usage, 342924000);
         assert_eq!(cpu.user, 53792000);
         assert_eq!(cpu.system, 117670000);
     }
@@ -216,8 +216,8 @@ mod test {
 
         // Rounding in the floating point calculations can vary, so check if this
         // is in the correct range.
-        assert!(in_percentages.total_usage > 0.16);
-        assert!(in_percentages.total_usage < 0.17);
+        assert!(in_percentages.total_usage > 0.33);
+        assert!(in_percentages.total_usage < 0.34);
 
         assert!(in_percentages.user > 0.02);
         assert!(in_percentages.user < 0.03);
