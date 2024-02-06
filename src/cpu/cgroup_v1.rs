@@ -23,8 +23,8 @@ pub fn read_and_parse_v1_sys_stat(
     if cpu_period_path.exists() && cpu_quota_path.exists() {
         let cpu_period = parse_u64(file_to_string(&cpu_period_path)?.trim())? as f64;
         let cpu_quota_raw = file_to_string(&cpu_quota_path)?.trim().to_string();
+        // The value `-1` means no quota is set and we can't calculate the number of CPUs present.
         if cpu_quota_raw != "-1" {
-            // No quota set, so we can't calulate the number of CPUs
             let cpu_quota = parse_u64(&cpu_quota_raw)? as f64;
             cpu_count = cpu_quota / cpu_period;
         }
