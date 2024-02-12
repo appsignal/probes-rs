@@ -86,7 +86,11 @@ pub fn read() -> Result<CgroupCpuMeasurement> {
 
     let v1_sys_fs_dir = Path::new("/sys/fs/cgroup/cpuacct/");
     if dir_exists(v1_sys_fs_dir) {
-        return read_and_parse_v1_sys_stat(&v1_sys_fs_dir);
+        return read_and_parse_v1_sys_stat(
+            &v1_sys_fs_dir,
+            &Path::new("/sys/fs/cgroup/cpu/cpu.cfs_period_us"),
+            &Path::new("/sys/fs/cgroup/cpu/cpu.cfs_quota_us"),
+        );
     }
 
     Err(ProbeError::UnexpectedContent(format!(
