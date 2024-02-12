@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+
+- Normalize CPU metrics for cgroups v1 systems. When we can detect how many CPUs there are set up in the container's limits, we will normalize the CPU percentages to a maximum of 100%. This is a breaking change.
+- Support fractional CPUs for cgroups v2 metrics. Previously a CPU count of 0.5 would be interpreted as 1 CPU. Now it will be correctly seen as half a CPU.
+
 ## 0.5.4
 
 - Fix disk usage returning a Vec with no entries on Alpine Linux when the `df --local` command fails.
