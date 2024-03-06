@@ -16,7 +16,7 @@ blocks:
       - name: "Build + Test"
         commands:
           - docker build -t probes/centos_7 -f docker/centos_7/Dockerfile .
-          - docker run --rm -v $(pwd):/probes -t probes/centos_7 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
+          - docker run --rm --env RUST_TEST_THREADS=1 -v $(pwd):/probes -t probes/centos_7 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
   - name: "CentOS 8"
     dependencies: []
     task:
@@ -24,7 +24,7 @@ blocks:
       - name: "Build + Test"
         commands:
           - docker build -t probes/centos_8 -f docker/centos_8/Dockerfile .
-          - docker run --rm -v $(pwd):/probes -t probes/centos_8 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
+          - docker run --rm --env RUST_TEST_THREADS=1 -v $(pwd):/probes -t probes/centos_8 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
   - name: "Fedora 31"
     dependencies: []
     task:
@@ -32,7 +32,7 @@ blocks:
       - name: "Build + Test"
         commands:
           - docker build -t probes/fedora_31 -f docker/fedora_31/Dockerfile .
-          - docker run --rm -v $(pwd):/probes -t probes/fedora_31 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
+          - docker run --rm --env RUST_TEST_THREADS=1 -v $(pwd):/probes -t probes/fedora_31 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
   - name: "Ubuntu 14.04"
     dependencies: []
     task:
@@ -40,7 +40,7 @@ blocks:
       - name: "Build + Test"
         commands:
           - docker build -t probes/ubuntu_1404 -f docker/ubuntu_1404/Dockerfile .
-          - docker run --rm -v $(pwd):/probes -t probes/ubuntu_1404 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
+          - docker run --rm --env RUST_TEST_THREADS=1 -v $(pwd):/probes -t probes/ubuntu_1404 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
   - name: "Ubuntu 16.04"
     dependencies: []
     task:
@@ -48,7 +48,7 @@ blocks:
       - name: "Build + Test"
         commands:
           - docker build -t probes/ubuntu_1604 -f docker/ubuntu_1604/Dockerfile .
-          - docker run --rm -v $(pwd):/probes -t probes/ubuntu_1604 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
+          - docker run --rm --env RUST_TEST_THREADS=1 -v $(pwd):/probes -t probes/ubuntu_1604 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
   - name: "Ubuntu 18.04"
     dependencies: []
     task:
@@ -56,7 +56,7 @@ blocks:
       - name: "Build + Test"
         commands:
           - docker build -t probes/ubuntu_1804 -f docker/ubuntu_1804/Dockerfile .
-          - docker run --rm -v $(pwd):/probes -t probes/ubuntu_1804 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
+          - docker run --rm --env RUST_TEST_THREADS=1 -v $(pwd):/probes -t probes/ubuntu_1804 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
   - name: "Ubuntu 20.04"
     dependencies: []
     task:
@@ -64,7 +64,7 @@ blocks:
       - name: "Build + Test"
         commands:
           - docker build -t probes/ubuntu_2004 -f docker/ubuntu_2004/Dockerfile .
-          - docker run --rm -v $(pwd):/probes -t probes/ubuntu_2004 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
+          - docker run --rm --env RUST_TEST_THREADS=1 -v $(pwd):/probes -t probes/ubuntu_2004 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
   - name: "Ubuntu 22.04"
     dependencies: []
     task:
@@ -72,4 +72,4 @@ blocks:
       - name: "Build + Test"
         commands:
           - docker build -t probes/ubuntu_2204 -f docker/ubuntu_2204/Dockerfile .
-          - docker run --rm -v $(pwd):/probes -t probes/ubuntu_2204 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
+          - docker run --rm --env RUST_TEST_THREADS=1 -v $(pwd):/probes -t probes/ubuntu_2204 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"

@@ -4,6 +4,7 @@ use crate::{
     file_to_buf_reader, file_to_string, parse_u64, path_to_string, precise_time_ns,
     read_file_value_as_u64, Result,
 };
+use std::env;
 use std::io::BufRead;
 use std::path::Path;
 
@@ -17,16 +18,25 @@ pub fn read_and_parse_v1_sys_stat(
 ) -> Result<CgroupCpuMeasurement> {
     let time = precise_time_ns();
 
-    // If the CPU period and quota files exist, we can use it to calculate the number of CPUs in
-    // the cgroup.
     let mut cpu_count = 0.0;
-    if cpu_period_path.exists() && cpu_quota_path.exists() {
-        let cpu_period = parse_u64(file_to_string(&cpu_period_path)?.trim())? as f64;
-        let cpu_quota_raw = file_to_string(&cpu_quota_path)?.trim().to_string();
-        // The value `-1` means no quota is set and we can't calculate the number of CPUs present.
-        if cpu_quota_raw != "-1" {
-            let cpu_quota = parse_u64(&cpu_quota_raw)? as f64;
-            cpu_count = cpu_quota / cpu_period;
+    if let Ok(cpu_count_raw) = env::var("APTIBLE_CONTAINER_CPU_SHARE") {
+        cpu_count = cpu_count_raw.parse::<f64>().map_err(|error| {
+            ProbeError::UnexpectedContent(format!(
+                "Could not convert APTIBLE_CONTAINER_CPU_SHARE '{}' to float: {}",
+                cpu_count_raw, error
+            ))
+        })?;
+    } else {
+        // If the CPU period and quota files exist, we can use it to calculate the number of CPUs in
+        // the cgroup.
+        if cpu_period_path.exists() && cpu_quota_path.exists() {
+            let cpu_period = parse_u64(file_to_string(&cpu_period_path)?.trim())? as f64;
+            let cpu_quota_raw = file_to_string(&cpu_quota_path)?.trim().to_string();
+            // The value `-1` means no quota is set and we can't calculate the number of CPUs present.
+            if cpu_quota_raw != "-1" {
+                let cpu_quota = parse_u64(&cpu_quota_raw)? as f64;
+                cpu_count = cpu_quota / cpu_period;
+            }
         }
     }
 
@@ -81,6 +91,7 @@ pub fn read_and_parse_v1_sys_stat(
 mod test {
     use super::read_and_parse_v1_sys_stat;
     use crate::error::ProbeError;
+    use std::env;
     use std::path::Path;
 
     #[test]
@@ -152,6 +163,66 @@ mod test {
         assert_eq!(cpu.total_usage, 152657213021);
         assert_eq!(cpu.user, 149340000000);
         assert_eq!(cpu.system, 980000000);
+    }
+
+    #[test]
+    fn test_read_v1_sys_measurement_one_cpu_aptible() {
+        env::set_var("APTIBLE_CONTAINER_CPU_SHARE", "1.0");
+        let measurement = read_and_parse_v1_sys_stat(
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpuacct_1/"),
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpu_quota/cpu.cfs_period_us"),
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpu_quota/cpu.cfs_quota_us.minus_one"),
+        )
+        .unwrap();
+        env::remove_var("APTIBLE_CONTAINER_CPU_SHARE");
+        let cpu = measurement.stat;
+        assert_eq!(cpu.total_usage, 152657213021);
+        assert_eq!(cpu.user, 149340000000);
+        assert_eq!(cpu.system, 980000000);
+    }
+
+    #[test]
+    fn test_read_v1_sys_measurement_half_cpu_aptible() {
+        env::set_var("APTIBLE_CONTAINER_CPU_SHARE", "0.5");
+        let measurement = read_and_parse_v1_sys_stat(
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpuacct_1/"),
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpu_quota/cpu.cfs_period_us"),
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpu_quota/cpu.cfs_quota_us.minus_one"),
+        )
+        .unwrap();
+        env::remove_var("APTIBLE_CONTAINER_CPU_SHARE");
+        let cpu = measurement.stat;
+        assert_eq!(cpu.total_usage, 305314426042);
+        assert_eq!(cpu.user, 149340000000);
+        assert_eq!(cpu.system, 980000000);
+    }
+
+    #[test]
+    fn test_read_v1_sys_measurement_two_cpu_aptible() {
+        env::set_var("APTIBLE_CONTAINER_CPU_SHARE", "2.0");
+        let measurement = read_and_parse_v1_sys_stat(
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpuacct_1/"),
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpu_quota/cpu.cfs_period_us"),
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpu_quota/cpu.cfs_quota_us.minus_one"),
+        )
+        .unwrap();
+        env::remove_var("APTIBLE_CONTAINER_CPU_SHARE");
+        let cpu = measurement.stat;
+        assert_eq!(cpu.total_usage, 76328606511);
+        assert_eq!(cpu.user, 149340000000);
+        assert_eq!(cpu.system, 980000000);
+    }
+
+    #[test]
+    fn test_read_v1_sys_measurement_invalid_cpu_aptible() {
+        env::set_var("APTIBLE_CONTAINER_CPU_SHARE", "abc");
+        assert!(read_and_parse_v1_sys_stat(
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpuacct_1/"),
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpu_quota/cpu.cfs_period_us"),
+            &Path::new("fixtures/linux/sys/fs/cgroup_v1/cpu_quota/cpu.cfs_quota_us.minus_one"),
+        )
+        .is_err());
+        env::remove_var("APTIBLE_CONTAINER_CPU_SHARE");
     }
 
     #[test]
