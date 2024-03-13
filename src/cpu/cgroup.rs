@@ -74,14 +74,14 @@ pub struct CgroupCpuStatPercentages {
 
 /// Read the current CPU stats of the container.
 #[cfg(target_os = "linux")]
-pub fn read() -> Result<CgroupCpuMeasurement> {
+pub fn read(cpu_count: Option<f64>) -> Result<CgroupCpuMeasurement> {
     use super::cgroup_v1::read_and_parse_v1_sys_stat;
     use super::cgroup_v2::read_and_parse_v2_sys_stat;
 
     let v2_sys_fs_file = Path::new("/sys/fs/cgroup/cpu.stat");
     if v2_sys_fs_file.exists() {
         let v2_sys_fs_cpu_max_file = Path::new("/sys/fs/cgroup/cpu.max");
-        return read_and_parse_v2_sys_stat(&v2_sys_fs_file, v2_sys_fs_cpu_max_file);
+        return read_and_parse_v2_sys_stat(&v2_sys_fs_file, v2_sys_fs_cpu_max_file, cpu_count);
     }
 
     let v1_sys_fs_dir = Path::new("/sys/fs/cgroup/cpuacct/");
@@ -90,6 +90,7 @@ pub fn read() -> Result<CgroupCpuMeasurement> {
             &v1_sys_fs_dir,
             &Path::new("/sys/fs/cgroup/cpu/cpu.cfs_period_us"),
             &Path::new("/sys/fs/cgroup/cpu/cpu.cfs_quota_us"),
+            cpu_count,
         );
     }
 
@@ -108,7 +109,8 @@ mod test {
 
     #[test]
     fn test_read() {
-        assert!(super::read().is_ok());
+        assert!(super::read(None).is_ok());
+        assert!(super::read(Some(0.5)).is_ok());
     }
 
     #[test]

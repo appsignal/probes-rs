@@ -10,21 +10,23 @@ const CPU_SYS_V2_NUMBER_OF_FIELDS: usize = 3;
 pub fn read_and_parse_v2_sys_stat(
     path: &Path,
     cpu_max_path: &Path,
+    mut cpu_count: Option<f64>,
 ) -> Result<CgroupCpuMeasurement> {
     // If the cpu.max file exists, we can use it to calculate the number of CPUs
     // in the cgroup. It's also required that the first value is not set to "max",
     // otherwise we can't calculate the number of CPUs.
-    let mut cpu_count = 0.0;
-    if cpu_max_path.exists() {
-        let reader = file_to_buf_reader(&cpu_max_path)?;
-        let mut lines = reader.lines();
-        if let Some(Ok(line)) = lines.next() {
-            let segments: Vec<&str> = line.split_whitespace().collect();
-            let max = segments[0];
+    if cpu_count.is_none() {
+        if cpu_max_path.exists() {
+            let reader = file_to_buf_reader(&cpu_max_path)?;
+            let mut lines = reader.lines();
+            if let Some(Ok(line)) = lines.next() {
+                let segments: Vec<&str> = line.split_whitespace().collect();
+                let max = segments[0];
 
-            if max != "max" {
-                let period = parse_u64(&segments[1])? as f64;
-                cpu_count = parse_u64(&max)? as f64 / period;
+                if max != "max" {
+                    let period = parse_u64(&segments[1])? as f64;
+                    cpu_count = Some(parse_u64(&max)? as f64 / period);
+                }
             }
         }
     }
@@ -47,8 +49,10 @@ pub fn read_and_parse_v2_sys_stat(
             "usage_usec" => {
                 cpu.total_usage = value * 1_000;
 
-                if cpu_count > 0.0 {
-                    cpu.total_usage = (cpu.total_usage as f64 / cpu_count).round() as u64;
+                if let Some(cpu_count) = cpu_count {
+                    if cpu_count > 0.0 {
+                        cpu.total_usage = (cpu.total_usage as f64 / cpu_count).round() as u64;
+                    }
                 }
                 1
             }
@@ -85,13 +89,14 @@ pub fn read_and_parse_v2_sys_stat(
 mod test {
     use super::read_and_parse_v2_sys_stat;
     use crate::error::ProbeError;
-    use std::path::Path;
+    use std::{option::Option::None, path::Path};
 
     #[test]
     fn test_read_v2_sys_measurement_default_cpu_max() {
         let measurement = read_and_parse_v2_sys_stat(
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_1"),
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_default"),
+            None,
         )
         .unwrap();
         let cpu = measurement.stat;
@@ -105,6 +110,7 @@ mod test {
         let measurement = read_and_parse_v2_sys_stat(
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_1"),
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_2_cpus"),
+            None,
         )
         .unwrap();
         let cpu = measurement.stat;
@@ -118,6 +124,49 @@ mod test {
         let measurement = read_and_parse_v2_sys_stat(
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_1"),
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_half"),
+            None,
+        )
+        .unwrap();
+        let cpu = measurement.stat;
+        assert_eq!(cpu.total_usage, 342924000);
+        assert_eq!(cpu.user, 53792000);
+        assert_eq!(cpu.system, 117670000);
+    }
+
+    #[test]
+    fn test_read_v2_sys_one_cpu_count() {
+        let measurement = read_and_parse_v2_sys_stat(
+            &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_1"),
+            &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_garbage"),
+            Some(1.0),
+        )
+        .unwrap();
+        let cpu = measurement.stat;
+        assert_eq!(cpu.total_usage, 171462000);
+        assert_eq!(cpu.user, 53792000);
+        assert_eq!(cpu.system, 117670000);
+    }
+
+    #[test]
+    fn test_read_v2_sys_measurement_two_cpu_count() {
+        let measurement = read_and_parse_v2_sys_stat(
+            &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_1"),
+            &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_garbage"),
+            Some(2.0),
+        )
+        .unwrap();
+        let cpu = measurement.stat;
+        assert_eq!(cpu.total_usage, 85731000);
+        assert_eq!(cpu.user, 53792000);
+        assert_eq!(cpu.system, 117670000);
+    }
+
+    #[test]
+    fn test_read_v2_sys_measurement_half_cpu_count() {
+        let measurement = read_and_parse_v2_sys_stat(
+            &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_1"),
+            &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_garbage"),
+            Some(0.5),
         )
         .unwrap();
         let cpu = measurement.stat;
@@ -128,7 +177,7 @@ mod test {
 
     #[test]
     fn test_read_v2_sys_wrong_path() {
-        match read_and_parse_v2_sys_stat(&Path::new("bananas"), &Path::new("potato")) {
+        match read_and_parse_v2_sys_stat(&Path::new("bananas"), &Path::new("potato"), None) {
             Err(ProbeError::IO(_, _)) => (),
             r => panic!("Unexpected result: {:?}", r),
         }
@@ -139,6 +188,7 @@ mod test {
         match read_and_parse_v2_sys_stat(
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_incomplete"),
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_default"),
+            None,
         ) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r),
@@ -149,7 +199,7 @@ mod test {
     fn test_read_and_parse_v2_sys_stat_garbage() {
         let path = Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_garbage");
         let max_file_path = Path::new("fixtures/linux/fs/cgroup_v2/cpu.max");
-        match read_and_parse_v2_sys_stat(&path, &max_file_path) {
+        match read_and_parse_v2_sys_stat(&path, &max_file_path, None) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r),
         }
@@ -159,7 +209,7 @@ mod test {
     fn test_read_and_parse_v2_sys_max_garbage() {
         let path = Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_1");
         let max_file_path = Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_garbage");
-        match read_and_parse_v2_sys_stat(&path, &max_file_path) {
+        match read_and_parse_v2_sys_stat(&path, &max_file_path, None) {
             Err(ProbeError::UnexpectedContent(_)) => (),
             r => panic!("Unexpected result: {:?}", r),
         }
@@ -170,12 +220,14 @@ mod test {
         let mut measurement1 = read_and_parse_v2_sys_stat(
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_1"),
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_2_cpus"),
+            None,
         )
         .unwrap();
         measurement1.precise_time_ns = 375953965125920;
         let mut measurement2 = read_and_parse_v2_sys_stat(
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_2"),
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_2_cpus"),
+            None,
         )
         .unwrap();
         measurement2.precise_time_ns = 376013815302920;
@@ -201,12 +253,14 @@ mod test {
         let mut measurement1 = read_and_parse_v2_sys_stat(
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_1"),
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_half"),
+            None,
         )
         .unwrap();
         measurement1.precise_time_ns = 375953965125920;
         let mut measurement2 = read_and_parse_v2_sys_stat(
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_2"),
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_half"),
+            None,
         )
         .unwrap();
         measurement2.precise_time_ns = 376013815302920;
