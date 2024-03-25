@@ -64,8 +64,8 @@ impl CgroupCpuStat {
 
         CgroupCpuStat {
             total_usage: (self.total_usage as f64 / cpu_count).round() as u64,
-            user: (self.user as f64 / cpu_count) as u64,
-            system: (self.system as f64 / cpu_count) as u64,
+            user: (self.user as f64 / cpu_count).round() as u64,
+            system: (self.system as f64 / cpu_count).round() as u64,
         }
     }
 
