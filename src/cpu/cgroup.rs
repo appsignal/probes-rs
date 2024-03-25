@@ -58,6 +58,17 @@ impl CgroupCpuStat {
         }
     }
 
+    // Divide the values by the number of (potentially fractional) CPUs allocated to the system.
+    pub fn by_cpu_count(&self, cpu_count: Option<f64>) -> CgroupCpuStat {
+        let cpu_count = cpu_count.filter(|count| *count != 0.0).unwrap_or(1.0);
+
+        CgroupCpuStat {
+            total_usage: (self.total_usage as f64 / cpu_count).round() as u64,
+            user: (self.user as f64 / cpu_count) as u64,
+            system: (self.system as f64 / cpu_count) as u64,
+        }
+    }
+
     fn percentage_of_total(&self, value: u64) -> f32 {
         // 60_000_000_000 being the total value. This is 60 seconds expressed in nanoseconds.
         (value as f32 / 60_000_000_000.0) * 100.0

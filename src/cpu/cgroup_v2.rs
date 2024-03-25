@@ -48,12 +48,6 @@ pub fn read_and_parse_v2_sys_stat(
         fields_encountered += match segments[0] {
             "usage_usec" => {
                 cpu.total_usage = value * 1_000;
-
-                if let Some(cpu_count) = cpu_count {
-                    if cpu_count > 0.0 {
-                        cpu.total_usage = (cpu.total_usage as f64 / cpu_count).round() as u64;
-                    }
-                }
                 1
             }
             "user_usec" => {
@@ -79,7 +73,7 @@ pub fn read_and_parse_v2_sys_stat(
     }
     let measurement = CgroupCpuMeasurement {
         precise_time_ns: time,
-        stat: cpu,
+        stat: cpu.by_cpu_count(cpu_count),
     };
     Ok(measurement)
 }
@@ -115,8 +109,8 @@ mod test {
         .unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total_usage, 85731000);
-        assert_eq!(cpu.user, 53792000);
-        assert_eq!(cpu.system, 117670000);
+        assert_eq!(cpu.user, 26896000);
+        assert_eq!(cpu.system, 58835000);
     }
 
     #[test]
@@ -129,8 +123,8 @@ mod test {
         .unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total_usage, 342924000);
-        assert_eq!(cpu.user, 53792000);
-        assert_eq!(cpu.system, 117670000);
+        assert_eq!(cpu.user, 107584000);
+        assert_eq!(cpu.system, 235340000);
     }
 
     #[test]
@@ -157,8 +151,8 @@ mod test {
         .unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total_usage, 85731000);
-        assert_eq!(cpu.user, 53792000);
-        assert_eq!(cpu.system, 117670000);
+        assert_eq!(cpu.user, 26896000);
+        assert_eq!(cpu.system, 58835000);
     }
 
     #[test]
@@ -171,8 +165,8 @@ mod test {
         .unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total_usage, 342924000);
-        assert_eq!(cpu.user, 53792000);
-        assert_eq!(cpu.system, 117670000);
+        assert_eq!(cpu.user, 107584000);
+        assert_eq!(cpu.system, 235340000);
     }
 
     #[test]
@@ -216,7 +210,7 @@ mod test {
     }
 
     #[test]
-    fn test_in_percentages_integration_v2() {
+    fn test_in_percentages_integration_v2_two_cpu() {
         let mut measurement1 = read_and_parse_v2_sys_stat(
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_1"),
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_2_cpus"),
@@ -240,16 +234,16 @@ mod test {
         assert!(in_percentages.total_usage > 0.08);
         assert!(in_percentages.total_usage < 0.09);
 
-        assert!(in_percentages.user > 0.02);
-        assert!(in_percentages.user < 0.03);
+        assert!(in_percentages.user > 0.01);
+        assert!(in_percentages.user < 0.02);
 
-        assert!(in_percentages.system > 0.13);
-        assert!(in_percentages.system < 0.14);
+        assert!(in_percentages.system > 0.06);
+        assert!(in_percentages.system < 0.07);
     }
 
     // When the cpu.max file does not return an integer.
     #[test]
-    fn test_in_percentages_integration_v2_non_int_max() {
+    fn test_in_percentages_integration_v2_half_cpu() {
         let mut measurement1 = read_and_parse_v2_sys_stat(
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.stat_1"),
             &Path::new("fixtures/linux/sys/fs/cgroup_v2/cpu.max_half"),
@@ -273,10 +267,10 @@ mod test {
         assert!(in_percentages.total_usage > 0.33);
         assert!(in_percentages.total_usage < 0.34);
 
-        assert!(in_percentages.user > 0.02);
-        assert!(in_percentages.user < 0.03);
+        assert!(in_percentages.user > 0.05);
+        assert!(in_percentages.user < 0.06);
 
-        assert!(in_percentages.system > 0.13);
-        assert!(in_percentages.system < 0.14);
+        assert!(in_percentages.system > 0.27);
+        assert!(in_percentages.system < 0.28);
     }
 }

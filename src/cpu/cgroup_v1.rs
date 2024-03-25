@@ -40,11 +40,6 @@ pub fn read_and_parse_v1_sys_stat(
         user: 0,
         system: 0,
     };
-    if let Some(cpu_count) = cpu_count {
-        if cpu_count > 0.0 {
-            cpu.total_usage = (cpu.total_usage as f64 / cpu_count).round() as u64;
-        }
-    }
 
     let mut fields_encountered = 0;
     for line in reader.lines() {
@@ -75,7 +70,7 @@ pub fn read_and_parse_v1_sys_stat(
     }
     let measurement = CgroupCpuMeasurement {
         precise_time_ns: time,
-        stat: cpu,
+        stat: cpu.by_cpu_count(cpu_count),
     };
     Ok(measurement)
 }
@@ -128,8 +123,8 @@ mod test {
         .unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total_usage, 76328606511);
-        assert_eq!(cpu.user, 149340000000);
-        assert_eq!(cpu.system, 980000000);
+        assert_eq!(cpu.user, 74670000000);
+        assert_eq!(cpu.system, 490000000);
     }
 
     #[test]
@@ -143,8 +138,8 @@ mod test {
         .unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total_usage, 305314426042);
-        assert_eq!(cpu.user, 149340000000);
-        assert_eq!(cpu.system, 980000000);
+        assert_eq!(cpu.user, 298680000000);
+        assert_eq!(cpu.system, 1960000000);
     }
 
     #[test]
@@ -189,8 +184,8 @@ mod test {
         .unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total_usage, 305314426042);
-        assert_eq!(cpu.user, 149340000000);
-        assert_eq!(cpu.system, 980000000);
+        assert_eq!(cpu.user, 298680000000);
+        assert_eq!(cpu.system, 1960000000);
     }
 
     #[test]
@@ -204,8 +199,8 @@ mod test {
         .unwrap();
         let cpu = measurement.stat;
         assert_eq!(cpu.total_usage, 76328606511);
-        assert_eq!(cpu.user, 149340000000);
-        assert_eq!(cpu.system, 980000000);
+        assert_eq!(cpu.user, 74670000000);
+        assert_eq!(cpu.system, 490000000);
     }
 
     #[test]
@@ -308,11 +303,11 @@ mod test {
         assert!(in_percentages.total_usage > 24.85);
         assert!(in_percentages.total_usage < 24.86);
 
-        assert!(in_percentages.user > 47.60);
-        assert!(in_percentages.user < 47.61);
+        assert!(in_percentages.user > 23.80);
+        assert!(in_percentages.user < 23.81);
 
-        assert!(in_percentages.system > 0.38);
-        assert!(in_percentages.system < 0.39);
+        assert!(in_percentages.system > 0.19);
+        assert!(in_percentages.system < 0.20);
     }
 
     #[test]
@@ -342,10 +337,10 @@ mod test {
         assert!(in_percentages.total_usage > 99.40);
         assert!(in_percentages.total_usage < 99.41);
 
-        assert!(in_percentages.user > 47.60);
-        assert!(in_percentages.user < 47.61);
+        assert!(in_percentages.user > 95.20);
+        assert!(in_percentages.user < 95.21);
 
-        assert!(in_percentages.system > 0.38);
-        assert!(in_percentages.system < 0.39);
+        assert!(in_percentages.system > 0.76);
+        assert!(in_percentages.system < 0.77);
     }
 }
