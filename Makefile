@@ -2,7 +2,6 @@ build:
 	docker build -t probes/ubuntu_2204 -f docker/ubuntu_2204/Dockerfile .
 
 build-all:
-	docker build -t probes/centos_7 -f docker/centos_7/Dockerfile .
 	docker build -t probes/centos_8 -f docker/centos_8/Dockerfile .
 	docker build -t probes/fedora_31 -f docker/fedora_31/Dockerfile .
 	docker build -t probes/ubuntu_1404 -f docker/ubuntu_1404/Dockerfile .
@@ -36,12 +35,6 @@ publish:
 		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo login; cargo publish"
 
 test-all:
-	docker run --rm \
-		-v $(PWD)/tmp/.cargo/registry/cache/centos_7:/root/.cargo/registry/cache \
-		-v $(PWD)/tmp/.cargo/registry/index:/root/.cargo/registry/index \
-		-v $(PWD)/tmp/.cargo/registry/src:/root/.cargo/registry/src \
-		-v $(PWD):/probes -t probes/centos_7 \
-		/bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
 	docker run --rm \
 		-v $(PWD)/tmp/.cargo/registry/cache/centos_8:/root/.cargo/registry/cache \
 		-v $(PWD)/tmp/.cargo/registry/index:/root/.cargo/registry/index \

@@ -9,14 +9,6 @@ global_job_config:
     commands:
       - checkout
 blocks:
-  - name: "CentOS 7"
-    dependencies: []
-    task:
-      jobs:
-      - name: "Build + Test"
-        commands:
-          - docker build -t probes/centos_7 -f docker/centos_7/Dockerfile .
-          - docker run --rm -v $(pwd):/probes -t probes/centos_7 /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
   - name: "CentOS 8"
     dependencies: []
     task:
