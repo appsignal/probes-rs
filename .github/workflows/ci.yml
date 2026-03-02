@@ -1,0 +1,58 @@
+name: Probes-rs CI
+
+'on':
+  push:
+    branches:
+    - main
+    - develop
+  pull_request:
+    types:
+    - opened
+    - reopened
+    - synchronize
+  schedule:
+  - cron: 0 0 * * 1-5
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: "${{ !contains(github.ref, 'main')}}"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro:
+          - name: "CentOS 8"
+            dockerfile: "docker/centos_8/Dockerfile"
+            tag: "probes/centos_8"
+          - name: "Fedora 31"
+            dockerfile: "docker/fedora_31/Dockerfile"
+            tag: "probes/fedora_31"
+          - name: "Ubuntu 14.04"
+            dockerfile: "docker/ubuntu_1404/Dockerfile"
+            tag: "probes/ubuntu_1404"
+          - name: "Ubuntu 16.04"
+            dockerfile: "docker/ubuntu_1604/Dockerfile"
+            tag: "probes/ubuntu_1604"
+          - name: "Ubuntu 18.04"
+            dockerfile: "docker/ubuntu_1804/Dockerfile"
+            tag: "probes/ubuntu_1804"
+          - name: "Ubuntu 20.04"
+            dockerfile: "docker/ubuntu_2004/Dockerfile"
+            tag: "probes/ubuntu_2004"
+          - name: "Ubuntu 22.04"
+            dockerfile: "docker/ubuntu_2204/Dockerfile"
+            tag: "probes/ubuntu_2204"
+
+    name: "Build + Test - ${{ matrix.distro.name }}"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t ${{ matrix.distro.tag }} -f ${{ matrix.distro.dockerfile }} .
+
+      - name: Run tests
+        run: docker run --rm -v $(pwd):/probes -t ${{ matrix.distro.tag }} /bin/bash -c "source /root/.cargo/env; cd /probes; cargo test"
