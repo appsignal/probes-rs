@@ -38,6 +38,8 @@ mod os {
     use super::{DiskInodeUsage, DiskUsage};
     use std::process::Command;
 
+    const DF_TIMEOUT_IN_S: &str = "5";
+
     #[inline]
     pub fn read() -> Result<Vec<DiskUsage>> {
         let mut out: Vec<DiskUsage> = Vec::new();
@@ -164,13 +166,27 @@ mod os {
 
     #[inline]
     fn disk_fs_inodes_raw() -> Result<String> {
-        let output = Command::new("df")
-            .arg("-i")
-            .output()
-            .map_err(|e| ProbeError::IO(e, "df -i".to_owned()))?
-            .stdout;
+        run_with_timeout(DF_TIMEOUT_IN_S, "df", &["-i"])
+    }
 
-        Ok(String::from_utf8_lossy(&output).to_string())
+    #[inline]
+    fn run_with_timeout(timeout_in_seconds: &str, command: &str, args: &[&str]) -> Result<String> {
+        let output = Command::new("timeout")
+            .arg(timeout_in_seconds)
+            .arg(command)
+            .args(args)
+            .output()
+            .map_err(|e| ProbeError::IO(e, "timeout".to_owned()))?;
+
+        if output.status.code() == Some(124) {
+            return Err(ProbeError::StatusFailure(format!(
+                "Command `{} {}` timed out",
+                command,
+                args.join(" ")
+            )));
+        }
+
+        Ok(String::from_utf8_lossy(&output.stdout).to_string())
     }
 
     #[inline]
@@ -194,6 +210,41 @@ mod os {
                 status.code(),
                 options.unwrap_or(&[]).join(" ")
             )))
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use std::time::Instant;
+
+        #[test]
+        fn test_run_with_timeout_normal() {
+            let start = Instant::now();
+            let result = run_with_timeout("2", "sh", &["-c", "sleep 1 && echo hello"]);
+            let elapsed = start.elapsed();
+
+            assert!(result.is_ok());
+            assert!(result.unwrap().contains("hello"));
+            assert!(
+                elapsed.as_secs_f64() < 2.0,
+                "expected result before ~2s, but took {}s",
+                elapsed.as_secs_f64()
+            );
+        }
+
+        #[test]
+        fn test_run_with_timeout_hung() {
+            let start = Instant::now();
+            let result = run_with_timeout("1", "sleep", &["2"]);
+            let elapsed = start.elapsed();
+
+            assert!(result.is_err());
+            assert!(
+                elapsed.as_secs_f64() < 1.5,
+                "expected timeout after 1s, but took {}s",
+                elapsed.as_secs_f64()
+            );
         }
     }
 }
