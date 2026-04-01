@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.2
+
+- Add a 5s timeout to disk usage reporting calls to prevent blocking the calling thread when a mounted filesystem is unresponsive.
+
 ## 0.7.1
 
 - Weigh all CPU usage measurements by the number of CPUs.
