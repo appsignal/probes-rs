@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.1
+
+- Weigh all CPU usage measurements by the number of CPUs.
+
+## 0.7.0
+
+- Add an optional CPU share parameter to `cpu::cgroup::read()`. Use it to calculate the cgroups quota instead of the CPU count.
+
 ## 0.6.0
 
 - Normalize CPU metrics for cgroups v1 systems. When we can detect how many CPUs there are set up in the container's limits, we will normalize the CPU percentages to a maximum of 100%. This is a breaking change.
