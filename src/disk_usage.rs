@@ -186,31 +186,21 @@ mod os {
             )));
         }
 
+        if !output.status.success() {
+            return Err(ProbeError::StatusFailure(format!(
+                "Command `{} {}` returned failure exit code '{:?}'",
+                command,
+                args.join(" "),
+                output.status.code()
+            )));
+        }
+
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     }
 
     #[inline]
     fn disk_fs_local_raw(options: Option<&[&str]>) -> Result<String> {
-        let mut cmd = Command::new("df");
-        if let Some(opts) = options {
-            cmd.args(opts);
-        }
-
-        let output = cmd
-            .output()
-            .map_err(|e| ProbeError::IO(e, format!("df {}", options.unwrap_or(&[]).join(" "))))?;
-        let stdout = output.stdout;
-        let status = output.status;
-
-        if status.success() {
-            Ok(String::from_utf8_lossy(&stdout).to_string())
-        } else {
-            Err(ProbeError::StatusFailure(format!(
-                "Command `df` returned failure exit code '{:?}': df {}",
-                status.code(),
-                options.unwrap_or(&[]).join(" ")
-            )))
-        }
+        run_with_timeout(DF_TIMEOUT_IN_S, "df", options.unwrap_or(&[]))
     }
 
     #[cfg(test)]
@@ -245,6 +235,23 @@ mod os {
                 "expected timeout after 1s, but took {}s",
                 elapsed.as_secs_f64()
             );
+        }
+
+        #[test]
+        fn test_run_with_timeout_failure() {
+            let result = run_with_timeout("2", "ls", &["--made-up-flag"]);
+
+            assert!(result.is_err());
+            match result {
+                Err(ProbeError::StatusFailure(msg)) => {
+                    assert!(
+                        msg.contains("ls --made-up-flag"),
+                        "expected error to mention the command, got: {}",
+                        msg
+                    );
+                }
+                other => panic!("expected StatusFailure, got: {:?}", other),
+            }
         }
     }
 }
