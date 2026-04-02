@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.3
+
+- Add a 5s timeout to disk space reporting calls, which were missed in 0.7.2.
+
 ## 0.7.2
 
 - Add a 5s timeout to disk usage reporting calls to prevent blocking the calling thread when a mounted filesystem is unresponsive.
