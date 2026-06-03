@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.4
+
+- Fix `timeout` behavior discrepancies between GNU coreutils and BusyBox. Previously, on Alpine-based containers running without a proper init process, BusyBox's `timeout` left a zombie process after each collection round. This fix replaces `timeout` binary with a native Rust polling loop.
+
 ## 0.7.3
 
 - Add a 5s timeout to disk space reporting calls, which were missed in 0.7.2.
