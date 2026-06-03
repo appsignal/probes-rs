@@ -36,9 +36,11 @@ pub fn read_inodes() -> Result<Vec<DiskInodeUsage>> {
 mod os {
     use super::super::{parse_u64, ProbeError, Result};
     use super::{DiskInodeUsage, DiskUsage};
-    use std::process::Command;
+    use std::io::Read;
+    use std::process::{Command, Stdio};
+    use std::time::{Duration, Instant};
 
-    const DF_TIMEOUT_IN_S: &str = "5";
+    const DF_TIMEOUT_IN_S: u64 = 5;
 
     #[inline]
     pub fn read() -> Result<Vec<DiskUsage>> {
@@ -170,32 +172,52 @@ mod os {
     }
 
     #[inline]
-    fn run_with_timeout(timeout_in_seconds: &str, command: &str, args: &[&str]) -> Result<String> {
-        let output = Command::new("timeout")
-            .arg(timeout_in_seconds)
-            .arg(command)
+    fn run_with_timeout(timeout_in_seconds: u64, command: &str, args: &[&str]) -> Result<String> {
+        let timeout = Duration::from_secs(timeout_in_seconds);
+        let start = Instant::now();
+
+        let mut child = Command::new(command)
             .args(args)
-            .output()
-            .map_err(|e| ProbeError::IO(e, "timeout".to_owned()))?;
+            .stdout(Stdio::piped())
+            .spawn()
+            .map_err(|e| ProbeError::IO(e, command.to_owned()))?;
 
-        if output.status.code() == Some(124) {
-            return Err(ProbeError::StatusFailure(format!(
-                "Command `{} {}` timed out",
-                command,
-                args.join(" ")
-            )));
+        loop {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    if status.success() {
+                        let mut output = String::new();
+                        if let Some(mut stdout) = child.stdout.take() {
+                            stdout
+                                .read_to_string(&mut output)
+                                .map_err(|e| ProbeError::IO(e, command.to_owned()))?;
+                        }
+                        return Ok(output);
+                    } else {
+                        return Err(ProbeError::StatusFailure(format!(
+                            "Command `{} {}` failed with status: {}",
+                            command,
+                            args.join(" "),
+                            status
+                        )));
+                    }
+                }
+                Ok(None) => {
+                    if start.elapsed() > timeout {
+                        child.kill().ok();
+                        child.wait().ok();
+                        return Err(ProbeError::StatusFailure(format!(
+                            "Command `{} {}` timed out after {}s",
+                            command,
+                            args.join(" "),
+                            timeout_in_seconds
+                        )));
+                    }
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+                Err(e) => return Err(ProbeError::IO(e, command.to_owned())),
+            }
         }
-
-        if !output.status.success() {
-            return Err(ProbeError::StatusFailure(format!(
-                "Command `{} {}` returned failure exit code '{:?}'",
-                command,
-                args.join(" "),
-                output.status.code()
-            )));
-        }
-
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
     }
 
     #[inline]
@@ -211,7 +233,7 @@ mod os {
         #[test]
         fn test_run_with_timeout_normal() {
             let start = Instant::now();
-            let result = run_with_timeout("2", "sh", &["-c", "sleep 1 && echo hello"]);
+            let result = run_with_timeout(2, "sh", &["-c", "sleep 1 && echo hello"]);
             let elapsed = start.elapsed();
 
             assert!(result.is_ok());
@@ -226,7 +248,7 @@ mod os {
         #[test]
         fn test_run_with_timeout_hung() {
             let start = Instant::now();
-            let result = run_with_timeout("1", "sleep", &["2"]);
+            let result = run_with_timeout(1, "sleep", &["2"]);
             let elapsed = start.elapsed();
 
             assert!(result.is_err());
@@ -239,7 +261,7 @@ mod os {
 
         #[test]
         fn test_run_with_timeout_failure() {
-            let result = run_with_timeout("2", "ls", &["--made-up-flag"]);
+            let result = run_with_timeout(2, "ls", &["--made-up-flag"]);
 
             assert!(result.is_err());
             match result {
