@@ -179,6 +179,11 @@ mod os {
         let mut child = Command::new(command)
             .args(args)
             .stdout(Stdio::piped())
+            // Discard stderr, as `Command::output()` did before 0.7.4: `read()`
+            // tries `df --local` first and falls back to `df`, and BusyBox's
+            // `df` rejects `--local` with a usage message that otherwise ends
+            // up in the host application's logs on every collection.
+            .stderr(Stdio::null())
             .spawn()
             .map_err(|e| ProbeError::IO(e, command.to_owned()))?;
 
