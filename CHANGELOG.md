@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.5
+
+- Fix disk usaged reporting call (internally `df`) error output appearing in the host application's logs on Alpine-based images.
+
 ## 0.7.4
 
 - Fix `timeout` behavior discrepancies between GNU coreutils and BusyBox. Previously, on Alpine-based containers running without a proper init process, BusyBox's `timeout` left a zombie process after each collection round. This fix replaces `timeout` binary with a native Rust polling loop.
